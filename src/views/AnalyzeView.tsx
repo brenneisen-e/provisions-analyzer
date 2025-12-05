@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { ArrowLeft, Search, FileDown, ChevronDown, ChevronUp, Flag } from 'lucide-react';
+import { ArrowLeft, Search, FileDown, ChevronDown, ChevronUp, Flag, Calculator, AlertTriangle, Sparkles } from 'lucide-react';
 import { Button, Input, Card, CardHeader, ProgressBar, Select, ConfidenceBadge } from '../components/ui';
 import { FileUpload } from '../components/FileUpload';
 import { useAppStore } from '../stores/appStore';
@@ -9,10 +9,14 @@ import { extractTextFromPDF } from '../services/pdfParser';
 import { parseTransactionsFromText, explainAllTransactions } from '../services/transactionMatcher';
 import { formatCurrency, formatDate } from '../utils/helpers';
 import { ExportModal } from './ExportModal';
-import type { Transaction } from '../types';
+import { CalculationBreakdown } from '../components/CalculationBreakdown';
+import { RuleReferencePanel, useRuleReferencePanel } from '../components/RuleReferencePanel';
+import { SummaryDashboard } from '../components/SummaryDashboard';
+import { SPARTEN_ICONS, PROVISIONSART_COLORS } from '../data/demoData';
+import type { Transaction, RuleReference } from '../types';
 
 export const AnalyzeView: React.FC = () => {
-  const { setCurrentView, addNotification } = useAppStore();
+  const { setCurrentView, addNotification, demoMode, presenterMode } = useAppStore();
   const { rules } = useRulesStore();
   const {
     transactions,
@@ -33,6 +37,15 @@ export const AnalyzeView: React.FC = () => {
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const [showExportModal, setShowExportModal] = useState(false);
   const [flaggedTransactions, setFlaggedTransactions] = useState<Set<string>>(new Set());
+  const [showFullBreakdown, setShowFullBreakdown] = useState<string | null>(null);
+
+  // Rule reference panel
+  const rulePanel = useRuleReferencePanel();
+
+  // Handle rule reference click
+  const handleRuleReferenceClick = (reference: RuleReference) => {
+    rulePanel.openPanel(reference);
+  };
 
   // Handle file selection
   const handleFileSelect = useCallback((file: File) => {
@@ -166,17 +179,33 @@ export const AnalyzeView: React.FC = () => {
     ? Math.round((analysisProgress.current / analysisProgress.total) * 100)
     : 0;
 
+  // Get selected transaction for full breakdown
+  const selectedTransaction = showFullBreakdown
+    ? transactions.find(t => t.id === showFullBreakdown)
+    : null;
+  const selectedExplanation = showFullBreakdown
+    ? getExplanation(showFullBreakdown)
+    : null;
+
   return (
-    <div className="space-y-6">
+    <div className={`space-y-6 ${presenterMode ? 'presenter-mode' : ''}`}>
       {/* Header */}
       <div className="flex items-center justify-between">
-        <Button
-          variant="ghost"
-          onClick={() => setCurrentView('setup')}
-          leftIcon={<ArrowLeft className="w-4 h-4" />}
-        >
-          Zurück
-        </Button>
+        <div className="flex items-center gap-3">
+          <Button
+            variant="ghost"
+            onClick={() => setCurrentView('setup')}
+            leftIcon={<ArrowLeft className="w-4 h-4" />}
+          >
+            Zurück
+          </Button>
+          {demoMode && (
+            <div className="flex items-center gap-2 px-3 py-1 bg-blue-100 rounded-full">
+              <Sparkles className="w-4 h-4 text-blue-600" />
+              <span className="text-sm font-medium text-blue-700">Demo-Modus</span>
+            </div>
+          )}
+        </div>
 
         {hasTransactions && (
           <Button
@@ -233,6 +262,16 @@ export const AnalyzeView: React.FC = () => {
       {/* Results Section */}
       {hasTransactions && (
         <>
+          {/* Summary Dashboard - shown in demo mode or after analysis */}
+          {(demoMode || explanations.size > 0) && (
+            <SummaryDashboard
+              transactions={transactions}
+              explanations={explanations}
+              documentName={demoMode ? 'Demo: Provisionsabrechnung November 2024' : undefined}
+              period="November 2024"
+            />
+          )}
+
           {/* Filters */}
           <Card padding="sm">
             <div className="flex flex-wrap gap-4 items-center">
@@ -304,6 +343,7 @@ export const AnalyzeView: React.FC = () => {
                       isFlagged={flaggedTransactions.has(transaction.id)}
                       onToggle={() => toggleRow(transaction.id)}
                       onToggleFlag={(e) => toggleFlag(transaction.id, e)}
+                      onShowFullBreakdown={() => setShowFullBreakdown(transaction.id)}
                     />
                   ))}
                 </tbody>
@@ -312,6 +352,39 @@ export const AnalyzeView: React.FC = () => {
           </Card>
         </>
       )}
+
+      {/* Full Breakdown Modal */}
+      {showFullBreakdown && selectedTransaction && selectedExplanation && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between z-10">
+              <h2 className="text-lg font-semibold text-gray-900">Detaillierte Berechnung</h2>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowFullBreakdown(null)}
+              >
+                Schließen
+              </Button>
+            </div>
+            <div className="p-6">
+              <CalculationBreakdown
+                transaction={selectedTransaction}
+                explanation={selectedExplanation}
+                onRuleReferenceClick={handleRuleReferenceClick}
+                isExpanded
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Rule Reference Panel */}
+      <RuleReferencePanel
+        isOpen={rulePanel.isOpen}
+        onClose={rulePanel.closePanel}
+        reference={rulePanel.reference}
+      />
 
       {/* Export Modal */}
       <ExportModal
@@ -332,6 +405,7 @@ interface TransactionRowProps {
   isFlagged: boolean;
   onToggle: () => void;
   onToggleFlag: (e: React.MouseEvent) => void;
+  onShowFullBreakdown: () => void;
 }
 
 const TransactionRow: React.FC<TransactionRowProps> = ({
@@ -340,14 +414,18 @@ const TransactionRow: React.FC<TransactionRowProps> = ({
   isExpanded,
   isFlagged,
   onToggle,
-  onToggleFlag
+  onToggleFlag,
+  onShowFullBreakdown
 }) => {
   const isNegative = transaction.provisionsbetrag < 0;
+  const isStorno = transaction.provisionsart === 'Storno' || isNegative;
+  const sparteIcon = SPARTEN_ICONS[transaction.sparte || ''] || '';
+  const artColors = PROVISIONSART_COLORS[transaction.provisionsart] || PROVISIONSART_COLORS['Sonstig'];
 
   return (
     <>
       <tr
-        className={`hover:bg-gray-50 cursor-pointer ${isExpanded ? 'bg-gray-50' : ''}`}
+        className={`hover:bg-gray-50 cursor-pointer transition-colors ${isExpanded ? 'bg-blue-50/50' : ''} ${isStorno ? 'bg-red-50/30' : ''}`}
         onClick={onToggle}
       >
         <td className="px-4 py-3">
@@ -360,16 +438,31 @@ const TransactionRow: React.FC<TransactionRowProps> = ({
         <td className="px-4 py-3 text-sm text-gray-900">
           {formatDate(transaction.datum)}
         </td>
-        <td className="px-4 py-3 text-sm font-medium text-gray-900">
-          {transaction.vertragsnummer}
+        <td className="px-4 py-3">
+          <div className="flex items-center gap-2">
+            {sparteIcon && <span className="text-lg">{sparteIcon}</span>}
+            <div>
+              <div className="text-sm font-medium text-gray-900">
+                {transaction.kundenname || transaction.vertragsnummer}
+              </div>
+              <div className="text-xs text-gray-500">{transaction.vertragsnummer}</div>
+            </div>
+            {isStorno && (
+              <AlertTriangle className="w-4 h-4 text-red-500 flex-shrink-0" />
+            )}
+          </div>
         </td>
         <td className="px-4 py-3 text-sm text-gray-600">
-          {transaction.produktart}
+          <span className="truncate max-w-[200px] block" title={transaction.produktart}>
+            {transaction.produktart}
+          </span>
         </td>
-        <td className="px-4 py-3 text-sm text-gray-600">
-          {transaction.provisionsart}
+        <td className="px-4 py-3">
+          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${artColors.bg} ${artColors.text}`}>
+            {transaction.provisionsart}
+          </span>
         </td>
-        <td className={`px-4 py-3 text-sm text-right font-medium ${isNegative ? 'text-red-600' : 'text-gray-900'}`}>
+        <td className={`px-4 py-3 text-sm text-right font-semibold ${isNegative ? 'text-red-600' : 'text-emerald-600'}`}>
           {formatCurrency(transaction.provisionsbetrag)}
         </td>
         <td className="px-4 py-3 text-center">
@@ -380,7 +473,7 @@ const TransactionRow: React.FC<TransactionRowProps> = ({
         <td className="px-4 py-3 text-center">
           <button
             onClick={onToggleFlag}
-            className={`p-1 rounded hover:bg-gray-100 ${isFlagged ? 'text-red-500' : 'text-gray-300'}`}
+            className={`p-1 rounded hover:bg-gray-100 transition-colors ${isFlagged ? 'text-red-500' : 'text-gray-300 hover:text-gray-400'}`}
           >
             <Flag className="w-4 h-4" />
           </button>
@@ -389,38 +482,88 @@ const TransactionRow: React.FC<TransactionRowProps> = ({
 
       {/* Expanded Details */}
       {isExpanded && explanation && (
-        <tr className="bg-gray-50">
+        <tr className="bg-slate-50">
           <td colSpan={8} className="px-4 py-4">
-            <div className="ml-8 space-y-3">
-              <div>
-                <h4 className="text-sm font-medium text-gray-700 mb-1">Erklärung</h4>
+            <div className="ml-8 space-y-4">
+              {/* Summary */}
+              <div className="bg-white rounded-lg border border-gray-200 p-4">
+                <h4 className="text-sm font-semibold text-gray-800 mb-2">
+                  {explanation.summary || 'Berechnungsnachweis'}
+                </h4>
                 <p className="text-sm text-gray-600">{explanation.explanation}</p>
               </div>
 
+              {/* Calculation Preview */}
               {explanation.calculation && (
-                <div>
-                  <h4 className="text-sm font-medium text-gray-700 mb-1">Berechnung</h4>
-                  <p className="text-sm text-gray-600 font-mono bg-white px-3 py-2 rounded border border-gray-200">
+                <div className="bg-slate-100 rounded-lg p-4 border border-slate-200">
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                      <Calculator className="w-4 h-4" />
+                      Berechnung
+                    </h4>
+                    {explanation.calculationSteps && explanation.calculationSteps.length > 0 && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onShowFullBreakdown();
+                        }}
+                        rightIcon={<ChevronDown className="w-3 h-3" />}
+                      >
+                        Vollständige Berechnung
+                      </Button>
+                    )}
+                  </div>
+                  <p className="text-sm text-gray-800 font-mono bg-white px-4 py-3 rounded border border-slate-300">
                     {explanation.calculation}
                   </p>
+
+                  {/* Quick step preview */}
+                  {explanation.calculationSteps && explanation.calculationSteps.length > 0 && (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {explanation.calculationSteps.slice(0, 3).map((step, idx) => (
+                        <span
+                          key={idx}
+                          className="inline-flex items-center px-2 py-1 bg-white border border-slate-300 rounded text-xs text-gray-600"
+                        >
+                          <span className="w-4 h-4 bg-teal-100 text-teal-700 rounded-full text-xs flex items-center justify-center mr-1.5 font-medium">
+                            {step.step}
+                          </span>
+                          {step.label}
+                        </span>
+                      ))}
+                      {explanation.calculationSteps.length > 3 && (
+                        <span className="text-xs text-gray-500 self-center">
+                          +{explanation.calculationSteps.length - 3} weitere Schritte
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
 
+              {/* Notes */}
               {explanation.notes && (
-                <div>
-                  <h4 className="text-sm font-medium text-gray-700 mb-1">Hinweise</h4>
-                  <p className="text-sm text-yellow-700 bg-yellow-50 px-3 py-2 rounded">
-                    {explanation.notes}
+                <div className="bg-amber-50 border-l-4 border-amber-400 rounded-r-lg px-4 py-3">
+                  <p className="text-sm text-amber-800">
+                    <span className="font-medium">Hinweis:</span> {explanation.notes}
                   </p>
                 </div>
               )}
 
-              {transaction.beitrag && (
-                <div className="text-xs text-gray-500">
-                  Beitrag: {formatCurrency(transaction.beitrag)}
-                  {transaction.bewertungssumme && ` | Bewertungssumme: ${formatCurrency(transaction.bewertungssumme)}`}
-                </div>
-              )}
+              {/* Additional Info */}
+              <div className="flex flex-wrap gap-4 text-xs text-gray-500">
+                {transaction.beitrag && (
+                  <span>Beitrag: <span className="font-medium text-gray-700">{formatCurrency(transaction.beitrag)}</span></span>
+                )}
+                {transaction.bewertungssumme && (
+                  <span>Bewertungssumme: <span className="font-medium text-gray-700">{formatCurrency(transaction.bewertungssumme)}</span></span>
+                )}
+                {transaction.zusatzinfo && (
+                  <span className="text-amber-600">{transaction.zusatzinfo}</span>
+                )}
+              </div>
             </div>
           </td>
         </tr>

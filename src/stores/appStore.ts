@@ -14,6 +14,11 @@ interface AppState {
   error: string | null;
   notifications: Notification[];
 
+  // Demo & Presenter Mode
+  demoMode: boolean;
+  presenterMode: boolean;
+  presenterFontScale: number;
+
   // Actions
   setCurrentView: (view: ViewType) => void;
   setApiKey: (key: string) => void;
@@ -23,9 +28,16 @@ interface AppState {
   removeNotification: (id: string) => void;
   clearNotifications: () => void;
 
+  // Demo & Presenter Actions
+  setDemoMode: (enabled: boolean) => void;
+  setPresenterMode: (enabled: boolean) => void;
+  setPresenterFontScale: (scale: number) => void;
+  togglePresenterMode: () => void;
+
   // Getters
   hasApiKey: () => boolean;
   hasRules: () => boolean;
+  isDemoMode: () => boolean;
 }
 
 interface Notification {
@@ -46,6 +58,9 @@ export const useAppStore = create<AppState>()(
       isLoading: false,
       error: null,
       notifications: [],
+      demoMode: false,
+      presenterMode: false,
+      presenterFontScale: 1.0,
 
       // Actions
       setCurrentView: (view) => set({ currentView: view }),
@@ -71,13 +86,24 @@ export const useAppStore = create<AppState>()(
 
       clearNotifications: () => set({ notifications: [] }),
 
+      // Demo & Presenter Actions
+      setDemoMode: (enabled) => set({ demoMode: enabled }),
+
+      setPresenterMode: (enabled) => set({ presenterMode: enabled }),
+
+      setPresenterFontScale: (scale) => set({ presenterFontScale: Math.max(0.8, Math.min(1.5, scale)) }),
+
+      togglePresenterMode: () => set((state) => ({ presenterMode: !state.presenterMode })),
+
       // Getters
       hasApiKey: () => get().apiConfig.anthropicApiKey.length > 0,
 
       hasRules: () => {
         // Will be checked via rulesStore
         return false;
-      }
+      },
+
+      isDemoMode: () => get().demoMode
     }),
     {
       name: 'provisions-app-storage',

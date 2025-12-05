@@ -1,9 +1,10 @@
 import React, { useState, useCallback } from 'react';
-import { Key, FileText, CheckCircle, Download, AlertCircle } from 'lucide-react';
+import { Key, FileText, CheckCircle, Download, AlertCircle, Play, Sparkles } from 'lucide-react';
 import { Button, Input, Card, CardHeader, ProgressBar } from '../components/ui';
 import { FileUpload } from '../components/FileUpload';
 import { useAppStore } from '../stores/appStore';
 import { useRulesStore } from '../stores/rulesStore';
+import { useTransactionsStore } from '../stores/transactionsStore';
 import { initAnthropicClient, validateApiKey } from '../services/anthropicClient';
 import { extractTextFromPDF } from '../services/pdfParser';
 import { chunkDocument } from '../services/chunkAnalyzer';
@@ -12,9 +13,10 @@ import { generateSampleProvisionStatement, downloadBlob } from '../services/pdfG
 import { generateSampleProvisionsRules } from '../services/provisionsRulesGenerator';
 import { generateVergütungsnachweise } from '../services/verguetungsnachweiseGenerator';
 import { barmeniaProvisionRules } from '../data/barmeniaRules';
+import { DEMO_TRANSACTIONS, DEMO_EXPLANATIONS } from '../data/demoData';
 
 export const SetupView: React.FC = () => {
-  const { apiConfig, setApiKey, setCurrentView, addNotification } = useAppStore();
+  const { apiConfig, setApiKey, setCurrentView, addNotification, setDemoMode, demoMode } = useAppStore();
   const {
     rules,
     documentName,
@@ -26,6 +28,7 @@ export const SetupView: React.FC = () => {
     resetProgress,
     clearAll
   } = useRulesStore();
+  const { setTransactions, setExplanations, setDocumentName: setTransactionDocName } = useTransactionsStore();
 
   const [apiKeyInput, setApiKeyInput] = useState(apiConfig.anthropicApiKey);
   const [isValidating, setIsValidating] = useState(false);
@@ -230,12 +233,47 @@ export const SetupView: React.FC = () => {
     addNotification({ type: 'info', message: 'Gespeicherte Regeln wurden gelöscht' });
   };
 
+  // Start demo mode with pre-loaded data
+  const handleStartDemo = () => {
+    // Load predefined rules
+    setRules(barmeniaProvisionRules);
+    setDocumentName('Demo: Alpha Versicherung (Showcase)');
+
+    // Load demo transactions
+    setTransactions(DEMO_TRANSACTIONS);
+    setTransactionDocName('Demo: Provisionsabrechnung November 2024');
+
+    // Load pre-calculated explanations
+    const explanationsArray = Object.values(DEMO_EXPLANATIONS);
+    setExplanations(explanationsArray);
+
+    // Enable demo mode
+    setDemoMode(true);
+
+    // Set analysis as complete
+    setAnalysisProgress({
+      stage: 'complete',
+      current: barmeniaProvisionRules.length,
+      total: barmeniaProvisionRules.length,
+      message: `Demo-Modus: ${barmeniaProvisionRules.length} Regeln und ${DEMO_TRANSACTIONS.length} Transaktionen geladen`
+    });
+
+    addNotification({
+      type: 'success',
+      message: 'Demo-Modus aktiviert! Alle Beispieldaten wurden geladen.'
+    });
+
+    // Navigate directly to analysis
+    setCurrentView('analyze');
+  };
+
   // Continue to analysis
   const handleContinue = () => {
     if (rules.length === 0) {
       addNotification({ type: 'error', message: 'Bitte laden Sie zuerst Provisionsbestimmungen hoch' });
       return;
     }
+    setDemoMode(false);
     setCurrentView('analyze');
   };
 
@@ -249,6 +287,54 @@ export const SetupView: React.FC = () => {
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
+      {/* Demo Mode - Showcase Section */}
+      <div className="border-2 border-dashed border-blue-300 rounded-xl p-6 bg-gradient-to-br from-blue-50 to-indigo-50">
+        <div className="flex items-start gap-4">
+          <div className="p-3 bg-blue-100 rounded-full">
+            <Sparkles className="w-6 h-6 text-blue-600" />
+          </div>
+          <div className="flex-1">
+            <h3 className="text-lg font-semibold text-blue-900 mb-1">
+              Showcase-Modus
+            </h3>
+            <p className="text-blue-700 text-sm mb-4">
+              Starte mit vorbereiteten Beispieldaten für die Präsentation.
+              Alle Berechnungsnachweise sind bereits vollständig aufbereitet.
+              <span className="font-medium"> Keine API-Verbindung erforderlich.</span>
+            </p>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Button
+                size="lg"
+                onClick={handleStartDemo}
+                className="bg-blue-600 hover:bg-blue-700 flex-1 sm:flex-none"
+                leftIcon={<Play className="w-5 h-5" />}
+              >
+                Demo starten
+              </Button>
+              <div className="flex items-center gap-2 text-xs text-blue-600">
+                <span className="px-2 py-1 bg-blue-100 rounded-full">{DEMO_TRANSACTIONS.length} Transaktionen</span>
+                <span className="px-2 py-1 bg-blue-100 rounded-full">{barmeniaProvisionRules.length} Regeln</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        {demoMode && (
+          <div className="mt-4 p-2 bg-blue-100 rounded-lg text-center">
+            <span className="text-sm text-blue-800 font-medium">Demo-Modus ist aktiv</span>
+          </div>
+        )}
+      </div>
+
+      {/* Divider */}
+      <div className="relative">
+        <div className="absolute inset-0 flex items-center">
+          <div className="w-full border-t border-gray-200"></div>
+        </div>
+        <div className="relative flex justify-center text-sm">
+          <span className="px-4 bg-gray-50 text-gray-500">oder eigene Daten verwenden</span>
+        </div>
+      </div>
+
       {/* API Key Section */}
       <Card>
         <CardHeader

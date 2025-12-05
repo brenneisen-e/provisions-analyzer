@@ -43,14 +43,49 @@ export interface Transaction {
   zusatzinfo?: string;
 }
 
-// Erklärung für eine Transaktion
+// Regelwerk-Referenz für detaillierte Quellenangaben
+export interface RuleReference {
+  paragraph: string;                    // "§2 Abs. 3"
+  document: string;                     // "Provisionsbestimmungen KV"
+  quote: string;                        // Exakter Wortlaut aus dem Regelwerk
+  context?: string;                     // Umgebender Text für mehr Kontext
+  pageNumber?: number;
+  relatedRules?: string[];              // Verwandte Paragraphen
+}
+
+// Einzelner Berechnungsschritt
+export interface CalculationStep {
+  step: number;
+  label: string;                          // "Bereinigten Monatsbeitrag ermitteln"
+  description: string;                    // Warum dieser Schritt nötig ist
+  formula: string;                        // "MB_netto = MB_brutto × 0,90"
+  inputValues: Record<string, number>;    // { mb_brutto: 632.14 }
+  calculation: string;                    // "632,14 € × 0,90 = 568,93 €"
+  result: number;
+  resultLabel: string;                    // "Bereinigter Monatsbeitrag"
+  ruleReference: RuleReference;
+}
+
+// Angewandte Regel mit Details
+export interface AppliedRuleInfo {
+  id: string;
+  name: string;
+  category?: string;
+}
+
+// Erklärung für eine Transaktion (erweitert für Showcase)
 export interface TransactionExplanation {
   transactionId: string;
-  appliedRules: string[];
+  appliedRules: (string | AppliedRuleInfo)[];  // Array of strings or AppliedRuleInfo objects
   explanation: string;
   calculation: string;
   confidence: 'high' | 'medium' | 'low';
   notes?: string;
+  // Neue Felder für Step-by-Step Berechnung
+  summary?: string;                       // Kurze Zusammenfassung der Berechnung
+  calculationSteps?: CalculationStep[];   // Detaillierte Schritte
+  finalAmount?: number;
+  confidenceReasons?: string[];           // Begründung für Confidence-Level
 }
 
 // Chunk aus den Provisionsbestimmungen

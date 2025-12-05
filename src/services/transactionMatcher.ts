@@ -1,4 +1,4 @@
-import type { Transaction, TransactionExplanation, ProvisionRule } from '../types';
+import type { Transaction, TransactionExplanation, ProvisionRule, CalculationStep, AppliedRuleInfo } from '../types';
 import { sendMessage, extractJSON, PROMPTS } from './anthropicClient';
 import { findMatchingRules, rulesToPromptFormat } from './ruleExtractor';
 import { generateSimpleId, parseGermanDate } from '../utils/helpers';
@@ -8,10 +8,14 @@ interface ParsedTransactionsResponse {
 }
 
 interface ExplanationResponse {
-  appliedRules: string[];
+  summary?: string;
+  appliedRules: (string | AppliedRuleInfo)[];
   explanation: string;
   calculation: string;
+  calculationSteps?: CalculationStep[];
+  finalAmount?: number;
   confidence: 'high' | 'medium' | 'low';
+  confidenceReasons?: string[];
   notes?: string;
 }
 
@@ -158,7 +162,12 @@ ${transactionText}`;
       explanation: parsed.explanation || '',
       calculation: parsed.calculation || '',
       confidence: parsed.confidence || 'medium',
-      notes: parsed.notes
+      notes: parsed.notes,
+      // New fields for enhanced explanations
+      summary: parsed.summary,
+      calculationSteps: parsed.calculationSteps,
+      finalAmount: parsed.finalAmount || transaction.provisionsbetrag,
+      confidenceReasons: parsed.confidenceReasons
     };
   } catch (error) {
     console.error('Fehler bei Erklärungsgenerierung:', error);
