@@ -2,13 +2,6 @@ import jsPDF from 'jspdf';
 import type { Transaction, TransactionExplanation } from '../types';
 import { formatCurrency, formatDate } from '../utils/helpers';
 
-// Konstanten für Layout
-const PAGE_WIDTH = 210;
-const MARGIN_LEFT = 15;
-const MARGIN_RIGHT = 15;
-const MARGIN_TOP = 15;
-const CONTENT_WIDTH = PAGE_WIDTH - MARGIN_LEFT - MARGIN_RIGHT;
-
 // Farben
 const COLOR_PRIMARY = [0, 82, 147] as const; // Dunkelblau
 const COLOR_GRAY_DARK = [60, 60, 60] as const;
@@ -87,68 +80,76 @@ function formatEuroShort(val: number): string {
 
 /**
  * Generiert eine professionelle Beispiel-Provisionsabrechnung
+ * Im Querformat (Landscape) für alle Spalten
  */
 export function generateSampleProvisionStatement(): Blob {
-  const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+  // Querformat für mehr Platz
+  const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'landscape' });
   const transactions = getSampleTransactions();
 
-  let y = MARGIN_TOP;
+  // Landscape: 297mm breit, 210mm hoch
+  const PAGE_W = 297;
+  const PAGE_H = 210;
+  const ML = 12; // Margin Left
+  const MR = 12; // Margin Right
+  const MT = 12; // Margin Top
+  const CW = PAGE_W - ML - MR; // Content Width = 273mm
+
+  let y = MT;
 
   // ===== SEITE 1: KOPFBEREICH =====
 
   // Pool-Logo/Name (links oben)
-  doc.setFontSize(11);
+  doc.setFontSize(12);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(...COLOR_PRIMARY);
-  doc.text(POOL.name, MARGIN_LEFT, y);
+  doc.text(POOL.name, ML, y);
 
   doc.setFontSize(8);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(...COLOR_GRAY_LIGHT);
-  doc.text(`${POOL.strasse} · ${POOL.plz} ${POOL.ort}`, MARGIN_LEFT, y + 4);
-  doc.text(`Tel: ${POOL.tel} · ${POOL.email}`, MARGIN_LEFT, y + 8);
+  doc.text(`${POOL.strasse} · ${POOL.plz} ${POOL.ort} · Tel: ${POOL.tel}`, ML, y + 5);
 
   // Dokumenttyp (rechts oben)
-  doc.setFontSize(18);
+  doc.setFontSize(20);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(...COLOR_PRIMARY);
-  doc.text('PROVISIONSABRECHNUNG', PAGE_WIDTH - MARGIN_RIGHT, y + 2, { align: 'right' });
+  doc.text('PROVISIONSABRECHNUNG', PAGE_W - MR, y + 2, { align: 'right' });
 
-  y += 18;
+  y += 14;
 
   // Trennlinie
   doc.setDrawColor(...COLOR_PRIMARY);
   doc.setLineWidth(0.5);
-  doc.line(MARGIN_LEFT, y, PAGE_WIDTH - MARGIN_RIGHT, y);
+  doc.line(ML, y, PAGE_W - MR, y);
 
-  y += 8;
+  y += 6;
 
   // Empfänger-Block (links)
   doc.setFillColor(248, 250, 252);
-  doc.roundedRect(MARGIN_LEFT, y, 85, 32, 2, 2, 'F');
+  doc.roundedRect(ML, y, 90, 28, 2, 2, 'F');
 
   doc.setFontSize(7);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(...COLOR_GRAY_LIGHT);
-  doc.text('Empfänger', MARGIN_LEFT + 3, y + 4);
+  doc.text('Empfänger', ML + 3, y + 4);
 
   doc.setFontSize(9);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(...COLOR_GRAY_DARK);
-  doc.text(VERMITTLER.firma, MARGIN_LEFT + 3, y + 10);
+  doc.text(VERMITTLER.firma, ML + 3, y + 9);
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
-  doc.text(VERMITTLER.strasse, MARGIN_LEFT + 3, y + 15);
-  doc.text(`${VERMITTLER.plz} ${VERMITTLER.ort}`, MARGIN_LEFT + 3, y + 19);
+  doc.text(`${VERMITTLER.strasse}, ${VERMITTLER.plz} ${VERMITTLER.ort}`, ML + 3, y + 14);
 
   doc.setFontSize(7);
   doc.setTextColor(...COLOR_GRAY_LIGHT);
-  doc.text(`Vermittler-Nr: ${VERMITTLER.vermittlerNr}`, MARGIN_LEFT + 3, y + 25);
-  doc.text(`IHK-Register: ${VERMITTLER.ihkNr}`, MARGIN_LEFT + 3, y + 29);
+  doc.text(`Vermittler-Nr: ${VERMITTLER.vermittlerNr} | IHK: ${VERMITTLER.ihkNr}`, ML + 3, y + 19);
+  doc.text(`IBAN: ${VERMITTLER.iban}`, ML + 3, y + 24);
 
-  // Abrechnungsdaten (rechts)
-  const rightCol = 115;
+  // Abrechnungsdaten (Mitte-rechts)
+  const rightCol = 120;
   doc.setFontSize(8);
   doc.setTextColor(...COLOR_GRAY_DARK);
 
@@ -159,67 +160,72 @@ export function generateSampleProvisionStatement(): Blob {
     doc.setFont('helvetica', 'normal');
     doc.text(label, rightCol, y + 4 + (i * 5));
     doc.setFont('helvetica', 'bold');
-    doc.text(values[i], rightCol + 40, y + 4 + (i * 5));
+    doc.text(values[i], rightCol + 42, y + 4 + (i * 5));
   });
 
-  y += 40;
+  y += 34;
 
-  // ===== TRANSAKTIONS-TABELLE =====
+  // ===== TRANSAKTIONS-TABELLE (LANDSCAPE MIT ALLEN SPALTEN) =====
 
   // Tabellenkopf
   doc.setFillColor(...COLOR_TABLE_HEADER);
-  doc.rect(MARGIN_LEFT, y, CONTENT_WIDTH, 8, 'F');
+  doc.rect(ML, y, CW, 7, 'F');
 
-  doc.setFontSize(7);
+  doc.setFontSize(6.5);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(...COLOR_GRAY_DARK);
 
-  // Spalten-Definition - optimiert für A4 (180mm Inhaltsbreite)
+  // Spalten für Landscape (273mm Breite) - 12 Spalten
+  // Datum(18) VS-Nr(24) Kunde(22) Gesellschaft(22) Produkt(32) Sparte(16) Art(14) Beitrag(20) Basis(22) Satz(16) Provision(24) SR(18)
   const cols = [
-    { x: MARGIN_LEFT + 2, header: 'Datum' },        // 0-18
-    { x: MARGIN_LEFT + 18, header: 'VS-Nr.' },      // 18-40
-    { x: MARGIN_LEFT + 40, header: 'Kunde' },       // 40-58
-    { x: MARGIN_LEFT + 58, header: 'Gesellsch.' }, // 58-78
-    { x: MARGIN_LEFT + 78, header: 'Sparte' },      // 78-92
-    { x: MARGIN_LEFT + 95, header: 'Art' },         // 92-105
-    { x: MARGIN_LEFT + 108, header: 'Basis' },      // 105-128
-    { x: MARGIN_LEFT + 130, header: 'Satz' },       // 128-145
-    { x: MARGIN_LEFT + 148, header: 'Provision' },  // 145-180
+    { x: ML + 1, header: 'Datum', w: 17 },
+    { x: ML + 18, header: 'VS-Nummer', w: 23 },
+    { x: ML + 42, header: 'Kunde', w: 21 },
+    { x: ML + 64, header: 'Gesellschaft', w: 21 },
+    { x: ML + 86, header: 'Produkt', w: 31 },
+    { x: ML + 118, header: 'Sparte', w: 15 },
+    { x: ML + 134, header: 'Art', w: 13 },
+    { x: ML + 148, header: 'Beitrag €', w: 19 },
+    { x: ML + 168, header: 'Basis €', w: 21 },
+    { x: ML + 190, header: 'Satz', w: 15 },
+    { x: ML + 206, header: 'Provision €', w: 23 },
+    { x: ML + 230, header: 'SR €', w: 17 },
   ];
 
   cols.forEach(col => {
-    doc.text(col.header, col.x, y + 5.5);
+    doc.text(col.header, col.x, y + 4.5);
   });
 
-  y += 8;
+  y += 7;
 
   // Trennlinie unter Header
   doc.setDrawColor(200, 200, 200);
   doc.setLineWidth(0.2);
-  doc.line(MARGIN_LEFT, y, PAGE_WIDTH - MARGIN_RIGHT, y);
+  doc.line(ML, y, PAGE_W - MR, y);
 
   // Transaktionszeilen
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(7);
+  doc.setFontSize(6.5);
 
   let rowIndex = 0;
   transactions.forEach((tx) => {
-    // Seitenumbruch prüfen
-    if (y > 265) {
+    // Seitenumbruch prüfen (Landscape: Höhe 210mm, unten ~15mm Platz lassen)
+    if (y > PAGE_H - 20) {
       doc.addPage();
-      y = MARGIN_TOP;
+      y = MT;
 
       // Header auf neuer Seite wiederholen
       doc.setFillColor(...COLOR_TABLE_HEADER);
-      doc.rect(MARGIN_LEFT, y, CONTENT_WIDTH, 8, 'F');
+      doc.rect(ML, y, CW, 7, 'F');
       doc.setFont('helvetica', 'bold');
+      doc.setFontSize(6.5);
       doc.setTextColor(...COLOR_GRAY_DARK);
       cols.forEach(col => {
-        doc.text(col.header, col.x, y + 5.5);
+        doc.text(col.header, col.x, y + 4.5);
       });
-      y += 8;
+      y += 7;
       doc.setLineWidth(0.2);
-      doc.line(MARGIN_LEFT, y, PAGE_WIDTH - MARGIN_RIGHT, y);
+      doc.line(ML, y, PAGE_W - MR, y);
       doc.setFont('helvetica', 'normal');
       rowIndex = 0;
     }
@@ -227,33 +233,46 @@ export function generateSampleProvisionStatement(): Blob {
     // Alternierende Zeilenfarbe
     if (rowIndex % 2 === 1) {
       doc.setFillColor(...COLOR_TABLE_ALT);
-      doc.rect(MARGIN_LEFT, y, CONTENT_WIDTH, 7, 'F');
+      doc.rect(ML, y, CW, 6, 'F');
     }
 
     doc.setTextColor(...COLOR_GRAY_DARK);
+    doc.setFontSize(6.5);
 
-    // Daten eintragen - mit Kürzung für enge Spalten
-    doc.text(tx.datum, cols[0].x, y + 5);
-    doc.text(tx.vsnr.substring(0, 14), cols[1].x, y + 5);
-    doc.text(tx.kunde.substring(0, 10), cols[2].x, y + 5);
-    doc.text(tx.gesellschaft.substring(0, 10), cols[3].x, y + 5);
-    doc.text(tx.sparte.substring(0, 8), cols[4].x, y + 5);
-    doc.text(tx.artCode, cols[5].x, y + 5);
+    // Alle 12 Spalten mit Daten füllen
+    doc.text(tx.datum, cols[0].x, y + 4);
+    doc.text(tx.vsnr, cols[1].x, y + 4);
+    doc.text(tx.kunde.substring(0, 12), cols[2].x, y + 4);
+    doc.text(tx.gesellschaft.substring(0, 12), cols[3].x, y + 4);
+    doc.text(tx.produkt.substring(0, 18), cols[4].x, y + 4);
+    doc.text(tx.sparte, cols[5].x, y + 4);
+    doc.text(tx.artCode, cols[6].x, y + 4);
 
-    // Basis rechtsbündig (Spaltenbreite ~20mm)
+    // Beitrag rechtsbündig
+    doc.text(tx.beitrag.toLocaleString('de-DE'), cols[7].x + cols[7].w - 2, y + 4, { align: 'right' });
+
+    // Basis rechtsbündig
     const basisStr = tx.basis >= 1000 ? Math.round(tx.basis).toLocaleString('de-DE') : tx.basis.toFixed(0);
-    doc.text(basisStr, cols[7].x - 3, y + 5, { align: 'right' });
+    doc.text(basisStr, cols[8].x + cols[8].w - 2, y + 4, { align: 'right' });
 
-    doc.text(tx.satz, cols[7].x, y + 5);
+    // Satz
+    doc.text(tx.satz, cols[9].x, y + 4);
 
-    // Provision rechtsbündig am rechten Rand (vor MARGIN_RIGHT)
+    // Provision rechtsbündig (rot wenn negativ)
     if (tx.provision < 0) {
       doc.setTextColor(...COLOR_RED);
     }
-    doc.text(formatEuroShort(tx.provision), PAGE_WIDTH - MARGIN_RIGHT - 2, y + 5, { align: 'right' });
+    doc.text(formatEuroShort(tx.provision), cols[10].x + cols[10].w - 2, y + 4, { align: 'right' });
     doc.setTextColor(...COLOR_GRAY_DARK);
 
-    y += 7;
+    // SR (Stornoreserve) rechtsbündig
+    if (tx.sr > 0) {
+      doc.text(formatEuroShort(tx.sr), cols[11].x + cols[11].w - 2, y + 4, { align: 'right' });
+    } else {
+      doc.text('-', cols[11].x + cols[11].w - 6, y + 4, { align: 'right' });
+    }
+
+    y += 6;
     rowIndex++;
   });
 
@@ -261,43 +280,50 @@ export function generateSampleProvisionStatement(): Blob {
   y += 2;
   doc.setDrawColor(...COLOR_PRIMARY);
   doc.setLineWidth(0.5);
-  doc.line(MARGIN_LEFT, y, PAGE_WIDTH - MARGIN_RIGHT, y);
+  doc.line(ML, y, PAGE_W - MR, y);
 
   const bruttoSumme = transactions.reduce((sum, tx) => sum + tx.provision, 0);
   const srSumme = transactions.reduce((sum, tx) => sum + tx.sr, 0);
 
   y += 5;
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(8);
-  doc.text('Brutto-Provision gesamt:', MARGIN_LEFT + 2, y);
-  doc.text(formatEuro(bruttoSumme), PAGE_WIDTH - MARGIN_RIGHT - 2, y, { align: 'right' });
+  doc.setFontSize(9);
+  doc.text('Brutto-Provision gesamt:', ML + 2, y);
+  doc.text(formatEuro(bruttoSumme), cols[10].x + cols[10].w - 2, y, { align: 'right' });
+  doc.text('SR gesamt:', cols[11].x - 15, y);
+  doc.text(formatEuro(srSumme), cols[11].x + cols[11].w - 2, y, { align: 'right' });
 
-  // ===== SEITE 2: ÜBERSICHTEN =====
+  // ===== SEITE 2: ÜBERSICHTEN (auch Landscape) =====
   doc.addPage();
-  y = MARGIN_TOP;
+  y = MT;
 
   // Header Seite 2
-  doc.setFontSize(9);
+  doc.setFontSize(10);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(...COLOR_PRIMARY);
-  doc.text('PROVISIONSABRECHNUNG 2024-11-00042', MARGIN_LEFT, y);
+  doc.text('PROVISIONSABRECHNUNG 2024-11-00042 – Übersichten', ML, y);
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
   doc.setTextColor(...COLOR_GRAY_LIGHT);
-  doc.text('Seite 2 von 2', PAGE_WIDTH - MARGIN_RIGHT, y, { align: 'right' });
+  doc.text('Seite 2 von 2', PAGE_W - MR, y, { align: 'right' });
 
   y += 8;
   doc.setDrawColor(...COLOR_PRIMARY);
   doc.setLineWidth(0.3);
-  doc.line(MARGIN_LEFT, y, PAGE_WIDTH - MARGIN_RIGHT, y);
+  doc.line(ML, y, PAGE_W - MR, y);
   y += 10;
 
-  // ===== SPARTENÜBERSICHT =====
+  // Layout: Drei Spalten nebeneinander für mehr Platz im Landscape
+
+  // ===== LINKE SPALTE: SPARTENÜBERSICHT =====
+  const leftCol = ML;
+  let yLeft = y;
+
   doc.setFontSize(10);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(...COLOR_GRAY_DARK);
-  doc.text('Übersicht nach Sparten', MARGIN_LEFT, y);
-  y += 6;
+  doc.text('Übersicht nach Sparten', leftCol, yLeft);
+  yLeft += 6;
 
   // Berechne Sparten-Summen
   const spartenSummen: Record<string, { ng: number; bs: number; st: number; dyn: number }> = {};
@@ -316,95 +342,99 @@ export function generateSampleProvisionStatement(): Blob {
 
   // Tabelle Sparten
   doc.setFillColor(...COLOR_TABLE_HEADER);
-  doc.rect(MARGIN_LEFT, y, 140, 6, 'F');
+  doc.rect(leftCol, yLeft, 130, 6, 'F');
 
   doc.setFontSize(7);
   doc.setFont('helvetica', 'bold');
   const sparteCols = [
-    { x: MARGIN_LEFT + 2, header: 'Sparte', w: 30 },
-    { x: MARGIN_LEFT + 35, header: 'Neugeschäft', w: 25 },
-    { x: MARGIN_LEFT + 62, header: 'Bestand', w: 25 },
-    { x: MARGIN_LEFT + 89, header: 'Storno', w: 22 },
-    { x: MARGIN_LEFT + 113, header: 'Dynamik', w: 22 },
-    { x: MARGIN_LEFT + 137, header: 'Summe', w: 25 },
+    { x: leftCol + 2, header: 'Sparte', w: 28 },
+    { x: leftCol + 32, header: 'Neugeschäft', w: 22 },
+    { x: leftCol + 56, header: 'Bestand', w: 22 },
+    { x: leftCol + 80, header: 'Storno', w: 20 },
+    { x: leftCol + 102, header: 'Dynamik', w: 20 },
+    { x: leftCol + 124, header: 'Summe', w: 22 },
   ];
 
   sparteCols.forEach(col => {
-    doc.text(col.header, col.x, y + 4);
+    doc.text(col.header, col.x, yLeft + 4);
   });
-  y += 6;
+  yLeft += 6;
 
   doc.setFont('helvetica', 'normal');
   Object.entries(spartenSummen).forEach(([sparte, sums], idx) => {
     if (idx % 2 === 1) {
       doc.setFillColor(...COLOR_TABLE_ALT);
-      doc.rect(MARGIN_LEFT, y, 140, 5, 'F');
+      doc.rect(leftCol, yLeft, 130, 5, 'F');
     }
 
     const total = sums.ng + sums.bs + sums.st + sums.dyn;
     doc.setTextColor(...COLOR_GRAY_DARK);
-    doc.text(sparte, sparteCols[0].x, y + 3.5);
-    doc.text(formatEuroShort(sums.ng), sparteCols[1].x + 23, y + 3.5, { align: 'right' });
-    doc.text(formatEuroShort(sums.bs), sparteCols[2].x + 23, y + 3.5, { align: 'right' });
+    doc.text(sparte, sparteCols[0].x, yLeft + 3.5);
+    doc.text(formatEuroShort(sums.ng), sparteCols[1].x + 20, yLeft + 3.5, { align: 'right' });
+    doc.text(formatEuroShort(sums.bs), sparteCols[2].x + 20, yLeft + 3.5, { align: 'right' });
 
     if (sums.st < 0) doc.setTextColor(...COLOR_RED);
-    doc.text(formatEuroShort(sums.st), sparteCols[3].x + 20, y + 3.5, { align: 'right' });
+    doc.text(formatEuroShort(sums.st), sparteCols[3].x + 18, yLeft + 3.5, { align: 'right' });
     doc.setTextColor(...COLOR_GRAY_DARK);
 
-    doc.text(formatEuroShort(sums.dyn), sparteCols[4].x + 20, y + 3.5, { align: 'right' });
+    doc.text(formatEuroShort(sums.dyn), sparteCols[4].x + 18, yLeft + 3.5, { align: 'right' });
     doc.setFont('helvetica', 'bold');
-    doc.text(formatEuroShort(total), sparteCols[5].x + 23, y + 3.5, { align: 'right' });
+    doc.text(formatEuroShort(total), sparteCols[5].x + 20, yLeft + 3.5, { align: 'right' });
     doc.setFont('helvetica', 'normal');
-    y += 5;
+    yLeft += 5;
   });
 
-  y += 15;
+  yLeft += 10;
 
-  // ===== STORNORESERVE-KONTO =====
+  // ===== MITTLERE SPALTE: STORNORESERVE-KONTO =====
+  const midCol = 160;
+  let yMid = y;
+
   doc.setFontSize(10);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(...COLOR_GRAY_DARK);
-  doc.text('Stornoreserve-Konto', MARGIN_LEFT, y);
-  y += 6;
+  doc.text('Stornoreserve-Konto', midCol, yMid);
+  yMid += 6;
 
   doc.setFontSize(8);
   doc.setFont('helvetica', 'normal');
 
   const srRows = [
-    { label: 'Saldovortrag (01.11.2024)', value: 8500.00, bold: false },
-    { label: '+ Zuführung (10% der AP)', value: srSumme, bold: false },
-    { label: '– Auflösung (fällige Verträge)', value: -420.00, bold: false },
-    { label: '– Verrechnung (Stornos)', value: -185.00, bold: false },
+    { label: 'Saldovortrag (01.11.2024)', value: 8500.00 },
+    { label: '+ Zuführung (10% der AP)', value: srSumme },
+    { label: '– Auflösung (fällige Verträge)', value: -420.00 },
+    { label: '– Verrechnung (Stornos)', value: -185.00 },
   ];
 
   srRows.forEach(row => {
-    doc.text(row.label, MARGIN_LEFT + 2, y);
-    doc.text(formatEuro(row.value), MARGIN_LEFT + 80, y, { align: 'right' });
-    y += 5;
+    doc.text(row.label, midCol + 2, yMid);
+    doc.text(formatEuro(row.value), midCol + 70, yMid, { align: 'right' });
+    yMid += 5;
   });
 
   // Summenzeile SR
   doc.setDrawColor(150, 150, 150);
-  doc.line(MARGIN_LEFT, y - 1, MARGIN_LEFT + 85, y - 1);
+  doc.line(midCol, yMid - 1, midCol + 75, yMid - 1);
   const srSaldo = 8500 + srSumme - 420 - 185;
   doc.setFont('helvetica', 'bold');
-  doc.text('= Saldo neu (30.11.2024)', MARGIN_LEFT + 2, y + 3);
-  doc.text(formatEuro(srSaldo), MARGIN_LEFT + 80, y + 3, { align: 'right' });
+  doc.text('= Saldo neu (30.11.2024)', midCol + 2, yMid + 3);
+  doc.text(formatEuro(srSaldo), midCol + 70, yMid + 3, { align: 'right' });
 
-  y += 12;
+  yMid += 10;
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(...COLOR_GRAY_LIGHT);
   doc.setFontSize(7);
-  doc.text('Fällig in 12 Monaten (zur Information): 650,00 €', MARGIN_LEFT + 2, y);
+  doc.text('Fällig in 12 Monaten: 650,00 €', midCol + 2, yMid);
 
-  y += 20;
+  // ===== RECHTE SPALTE: KONTOAUSZUG =====
+  const rightColX = 245;
+  let yRight = y;
 
-  // ===== KONTOAUSZUG =====
   doc.setFontSize(10);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(...COLOR_GRAY_DARK);
-  doc.text('Kontoauszug / Abrechnungssaldo', MARGIN_LEFT, y);
-  y += 6;
+  doc.text('Abrechnungssaldo', rightColX, yRight);
+  yRight += 6;
 
   doc.setFontSize(8);
   doc.setFont('helvetica', 'normal');
@@ -412,85 +442,68 @@ export function generateSampleProvisionStatement(): Blob {
   const kontoRows = [
     { label: 'Saldovortrag', value: 250.00 },
     { label: '+ Brutto-Provision', value: bruttoSumme },
-    { label: '– Stornoreserve-Zuführung (10%)', value: -srSumme },
-    { label: '+ Stornoreserve-Auflösung', value: 420.00 },
+    { label: '– SR-Zuführung (10%)', value: -srSumme },
+    { label: '+ SR-Auflösung', value: 420.00 },
     { label: '– Vorschuss-Tilgung', value: -300.00 },
-    { label: '– Sonstige Abzüge', value: 0.00 },
   ];
 
   kontoRows.forEach(row => {
-    doc.text(row.label, MARGIN_LEFT + 2, y);
+    doc.text(row.label, rightColX + 2, yRight);
     const val = row.value;
     if (val < 0) doc.setTextColor(...COLOR_RED);
-    doc.text(formatEuro(val), MARGIN_LEFT + 95, y, { align: 'right' });
+    doc.text(formatEuro(val), PAGE_W - MR, yRight, { align: 'right' });
     doc.setTextColor(...COLOR_GRAY_DARK);
-    y += 5;
+    yRight += 5;
   });
 
   // Zwischensumme
-  y += 2;
+  yRight += 2;
   doc.setDrawColor(150, 150, 150);
-  doc.line(MARGIN_LEFT, y - 1, MARGIN_LEFT + 100, y - 1);
+  doc.line(rightColX, yRight - 1, PAGE_W - MR, yRight - 1);
 
   const zwischensumme = 250 + bruttoSumme - srSumme + 420 - 300;
   doc.setFont('helvetica', 'bold');
-  doc.text('= Zwischensumme', MARGIN_LEFT + 2, y + 3);
-  doc.text(formatEuro(zwischensumme), MARGIN_LEFT + 95, y + 3, { align: 'right' });
+  doc.text('= Auszahlung', rightColX + 2, yRight + 3);
+  doc.text(formatEuro(zwischensumme), PAGE_W - MR, yRight + 3, { align: 'right' });
 
-  y += 8;
-  doc.setFont('helvetica', 'normal');
-  doc.text('+/– USt (§ 4 Nr. 11 UStG: steuerfrei)', MARGIN_LEFT + 2, y);
-  doc.text('0,00 €', MARGIN_LEFT + 95, y, { align: 'right' });
+  // ===== AUSZAHLUNGSBETRAG (unten) =====
+  y = Math.max(yLeft, yMid) + 15;
 
-  y += 10;
-
-  // ===== AUSZAHLUNGSBETRAG =====
   doc.setFillColor(...COLOR_PRIMARY);
-  doc.roundedRect(MARGIN_LEFT, y, 110, 12, 2, 2, 'F');
+  doc.roundedRect(ML, y, CW, 14, 2, 2, 'F');
 
-  doc.setFontSize(10);
+  doc.setFontSize(11);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(255, 255, 255);
-  doc.text('AUSZAHLUNGSBETRAG', MARGIN_LEFT + 5, y + 8);
-  doc.setFontSize(12);
-  doc.text(formatEuro(zwischensumme), MARGIN_LEFT + 105, y + 8, { align: 'right' });
+  doc.text('AUSZAHLUNGSBETRAG', ML + 10, y + 9);
+  doc.setFontSize(14);
+  doc.text(formatEuro(zwischensumme), PAGE_W - MR - 10, y + 9, { align: 'right' });
 
-  y += 18;
-  doc.setTextColor(...COLOR_GRAY_DARK);
   doc.setFontSize(8);
   doc.setFont('helvetica', 'normal');
-  doc.text(`Zahlungsdatum: 19.12.2024`, MARGIN_LEFT + 2, y);
-  doc.text(`Konto: ${VERMITTLER.iban}`, MARGIN_LEFT + 2, y + 5);
+  doc.text(`Zahlungsdatum: 19.12.2024  |  Konto: ${VERMITTLER.iban}`, ML + 100, y + 9);
 
   // ===== RECHTLICHE HINWEISE =====
-  y += 20;
+  y += 22;
   doc.setDrawColor(220, 220, 220);
-  doc.line(MARGIN_LEFT, y, PAGE_WIDTH - MARGIN_RIGHT, y);
-  y += 6;
+  doc.line(ML, y, PAGE_W - MR, y);
+  y += 5;
 
   doc.setFontSize(7);
   doc.setTextColor(...COLOR_GRAY_LIGHT);
-  doc.setFont('helvetica', 'bold');
-  doc.text('Rechtliche Hinweise', MARGIN_LEFT, y);
-  y += 4;
-
   doc.setFont('helvetica', 'normal');
-  const hinweise = [
-    '• Courtagen für Versicherungsvermittlung sind gemäß § 4 Nr. 11 UStG umsatzsteuerfrei.',
-    '• Die Stornohaftungszeit beträgt gemäß § 49 VAG 60 Monate für Leben und PKV.',
-    '• Einsprüche gegen diese Abrechnung sind innerhalb von 6 Wochen schriftlich einzureichen.',
-    '• Aufbewahrungspflicht gemäß § 257 HGB: 10 Jahre.'
-  ];
-
-  hinweise.forEach(h => {
-    doc.text(h, MARGIN_LEFT, y);
-    y += 4;
-  });
+  doc.text(
+    'Courtagen für Versicherungsvermittlung sind gemäß § 4 Nr. 11 UStG umsatzsteuerfrei. ' +
+    'Die Stornohaftungszeit beträgt gemäß § 49 VAG 60 Monate für Leben und PKV. ' +
+    'Einsprüche gegen diese Abrechnung sind innerhalb von 6 Wochen schriftlich einzureichen. ' +
+    'Aufbewahrungspflicht gemäß § 257 HGB: 10 Jahre.',
+    ML, y, { maxWidth: CW }
+  );
 
   // Footer
   doc.setFontSize(7);
   doc.setTextColor(...COLOR_GRAY_LIGHT);
-  doc.text(`${POOL.name} · ${POOL.strasse} · ${POOL.plz} ${POOL.ort}`, PAGE_WIDTH / 2, 287, { align: 'center' });
+  doc.text(`${POOL.name} · ${POOL.strasse} · ${POOL.plz} ${POOL.ort}`, PAGE_W / 2, PAGE_H - 8, { align: 'center' });
 
   return doc.output('blob');
 }
