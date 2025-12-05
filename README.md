@@ -1,73 +1,83 @@
-# React + TypeScript + Vite
+# Provisions-Analyzer
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Ein Web-Tool zur automatischen Erklärung von Provisionsabrechnungen basierend auf Provisionsbestimmungen eines Versicherungsvermittlers.
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- **PDF-Chunking für Provisionsbestimmungen**: Analysiert PDFs mit Provisionsbestimmungen und extrahiert strukturierte Regeln
+- **Provisionsabrechnung analysieren**: Liest Provisionsabrechnungen (PDF) und extrahiert alle Transaktionen
+- **Matching & Erklärungsgenerierung**: Matcht jede Transaktion gegen die extrahierten Regeln und generiert verständliche Erklärungen
+- **Sample-PDF Generator**: Generiert realistische Beispiel-Provisionsabrechnungen zum Testen
+- **Export-Funktionalität**: Exportiert die Analyse als PDF-Report
 
-## React Compiler
+## Tech Stack
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- **Frontend**: React + TypeScript + Vite
+- **Styling**: Tailwind CSS
+- **PDF-Verarbeitung**: pdf.js (Lesen) + jsPDF (Generierung)
+- **State Management**: Zustand
+- **Icons**: Lucide React
+- **LLM**: Anthropic Claude API (clientseitig)
 
-## Expanding the ESLint configuration
+## Installation
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Entwicklung
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm run dev
 ```
+
+## Build
+
+```bash
+npm run build
+```
+
+## Deployment auf Cloudflare Pages
+
+### Option 1: Über Cloudflare Dashboard
+
+1. Gehe zu [Cloudflare Pages](https://dash.cloudflare.com/pages)
+2. Klicke auf "Create a project"
+3. Wähle "Connect to Git"
+4. Wähle das Repository `provisions-analyzer`
+5. Konfiguriere die Build-Einstellungen:
+   - **Build command**: `npm run build`
+   - **Build output directory**: `dist`
+   - **Node.js version**: 18 oder höher
+6. Klicke auf "Save and Deploy"
+
+### Option 2: Über Wrangler CLI
+
+```bash
+# Mit Cloudflare API Token
+export CLOUDFLARE_API_TOKEN="your-api-token"
+
+# Projekt erstellen
+npx wrangler pages project create provisions-analyzer --production-branch main
+
+# Deployen
+npx wrangler pages deploy dist
+```
+
+## Nutzung
+
+1. **Setup**: Gib deinen Anthropic API-Key ein
+2. **Provisionsbestimmungen hochladen**: Lade die PDF mit deinen Provisionsbestimmungen hoch
+3. **Analyse starten**: Das Tool extrahiert automatisch alle Provisionsregeln
+4. **Abrechnung analysieren**: Lade eine Provisionsabrechnung hoch
+5. **Erklärungen erhalten**: Für jede Transaktion wird eine Erklärung generiert
+
+## Datenschutz
+
+- Alle Daten werden lokal im Browser verarbeitet
+- Nur API-Anfragen werden an Anthropic gesendet
+- Keine Daten werden auf einem Server gespeichert
+
+## Lizenz
+
+MIT
