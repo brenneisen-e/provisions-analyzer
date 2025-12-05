@@ -10,6 +10,7 @@ import { chunkDocument } from '../services/chunkAnalyzer';
 import { extractRulesFromDocument } from '../services/ruleExtractor';
 import { generateSampleProvisionStatement, downloadBlob } from '../services/pdfGenerator';
 import { generateSampleProvisionsRules } from '../services/provisionsRulesGenerator';
+import { generateVergütungsnachweise } from '../services/verguetungsnachweiseGenerator';
 import type { ExtractedDocument } from '../types';
 
 export const SetupView: React.FC = () => {
@@ -175,6 +176,23 @@ export const SetupView: React.FC = () => {
       addNotification({
         type: 'success',
         message: 'Provisionsbestimmungen (80 Seiten) wurden heruntergeladen'
+      });
+    }, 100);
+  };
+
+  // Generate comprehensive Vergütungsnachweise PDF (based on Excel template)
+  const handleGenerateVerguetungsnachweise = () => {
+    addNotification({
+      type: 'info',
+      message: 'Generiere umfassende Vergütungsnachweise...'
+    });
+
+    setTimeout(() => {
+      const blob = generateVergütungsnachweise();
+      downloadBlob(blob, 'Barmenia-Verguetungsnachweise-06-2021.pdf');
+      addNotification({
+        type: 'success',
+        message: 'Vergütungsnachweise (7 Seiten) wurden heruntergeladen'
       });
     }, 100);
   };
@@ -365,6 +383,23 @@ export const SetupView: React.FC = () => {
               className="w-full"
             >
               Provisionsbestimmungen generieren (80 Seiten)
+            </Button>
+          </div>
+
+          <div className="p-3 bg-green-50 rounded-lg border border-green-200">
+            <p className="text-sm font-medium text-green-800 mb-2">
+              Umfassende Vergütungsnachweise (Barmenia-Vorlage)
+            </p>
+            <p className="text-xs text-green-600 mb-3">
+              7-seitiges Dokument mit Gesamtübersicht, Kontoauszug, KV/SHUK/LV-Einzelnachweisen
+            </p>
+            <Button
+              variant="outline"
+              onClick={handleGenerateVerguetungsnachweise}
+              leftIcon={<FileText className="w-4 h-4" />}
+              className="w-full"
+            >
+              Vergütungsnachweise generieren (7 Seiten)
             </Button>
           </div>
 
