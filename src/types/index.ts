@@ -2,7 +2,7 @@
 export interface ProvisionRule {
   id: string;
   name: string;
-  category: 'Abschluss' | 'Bestand' | 'Storno' | 'Dynamik' | 'Sonstig';
+  category: 'Abschluss' | 'Bestand' | 'Storno' | 'Dynamik' | 'Beitragsänderung' | 'Nachbearbeitung' | 'Sonstig';
   products: string[];
   conditions: string;
   formula: string;
@@ -15,6 +15,8 @@ export interface ProvisionRule {
   };
   notes?: string;
   sourceChunk?: string;
+  /** Quellenangabe im Vertrag, z.B. "§3 Abs. 2 Provisionsbestimmungen" */
+  sourceReference?: string;
 }
 
 export interface StaffelItem {
@@ -33,10 +35,12 @@ export interface Transaction {
   beitrag?: number;
   bewertungssumme?: number;
   provisionsbetrag: number;
-  provisionsart: 'Abschluss' | 'Bestand' | 'Storno' | 'Dynamik' | 'Nachprovision' | 'Sonstig';
+  provisionsart: 'Abschluss' | 'Bestand' | 'Storno' | 'Dynamik' | 'Nachprovision' | 'Beitragserhöhung' | 'Rückabrechnung' | 'Sonstig';
   vermittlernummer?: string;
   kundenname?: string;
   rawText?: string;
+  /** Zusatzinfo z.B. bei Storno: Grund, bei Dynamik: Erhöhungsbetrag */
+  zusatzinfo?: string;
 }
 
 // Erklärung für eine Transaktion

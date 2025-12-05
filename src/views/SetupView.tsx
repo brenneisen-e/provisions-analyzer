@@ -198,7 +198,7 @@ export const SetupView: React.FC = () => {
 
     setTimeout(() => {
       const blob = generateVergütungsnachweise();
-      downloadBlob(blob, 'Barmenia-Verguetungsnachweise-06-2021.pdf');
+      downloadBlob(blob, 'Alpha-Verguetungsnachweise-06-2024.pdf');
       addNotification({
         type: 'success',
         message: 'Vergütungsnachweise (7 Seiten) wurden heruntergeladen'
@@ -206,10 +206,10 @@ export const SetupView: React.FC = () => {
     }, 100);
   };
 
-  // Load predefined Barmenia rules
+  // Load predefined Alpha rules
   const handleLoadPredefinedRules = () => {
     setRules(barmeniaProvisionRules);
-    setDocumentName('Barmenia/Gothaer Vertretervertrag (vordefiniert)');
+    setDocumentName('Alpha Versicherung Vertretervertrag (vordefiniert)');
     setAnalysisProgress({
       stage: 'complete',
       current: barmeniaProvisionRules.length,
@@ -218,7 +218,7 @@ export const SetupView: React.FC = () => {
     });
     addNotification({
       type: 'success',
-      message: `${barmeniaProvisionRules.length} Provisionsregeln aus Barmenia/Gothaer Vertrag geladen`
+      message: `${barmeniaProvisionRules.length} Provisionsregeln aus Alpha Versicherung Vertrag geladen`
     });
   };
 
@@ -288,13 +288,13 @@ export const SetupView: React.FC = () => {
       {rules.length === 0 && (
         <Card>
           <CardHeader
-            title="Schnellstart: Barmenia/Gothaer Vertrag"
+            title="Schnellstart: Alpha Versicherung Vertrag"
             description="Verwenden Sie die vordefinierten Provisionsregeln aus Ihrem Vertretervertrag"
           />
 
           <div className="p-4 bg-blue-50 rounded-lg border border-blue-200 mb-4">
             <p className="text-sm text-blue-800 mb-3">
-              Die Provisionsregeln aus Ihrem Barmenia/Gothaer Vertretervertrag sind bereits im System hinterlegt.
+              Die Provisionsregeln aus Ihrem Alpha Versicherung Vertretervertrag sind bereits im System hinterlegt.
               Sie können direkt mit der Abrechnungsanalyse starten, ohne den Vertrag hochzuladen.
             </p>
             <Button
@@ -441,7 +441,7 @@ export const SetupView: React.FC = () => {
 
           <div className="p-3 bg-green-50 rounded-lg border border-green-200">
             <p className="text-sm font-medium text-green-800 mb-2">
-              Umfassende Vergütungsnachweise (Barmenia-Vorlage)
+              Umfassende Vergütungsnachweise (Alpha-Vorlage)
             </p>
             <p className="text-xs text-green-600 mb-3">
               7-seitiges Dokument mit Gesamtübersicht, Kontoauszug, KV/SHUK/LV-Einzelnachweisen

@@ -15,19 +15,19 @@ const COLOR_SECTION_BG = [240, 245, 250] as const;
 
 // Stammdaten
 const COMPANY_INFO = {
-  name: 'Barmenia',
-  subName: 'Krankenversicherung AG',
+  name: 'Alpha',
+  subName: 'Versicherung AG',
   address: 'Hauptverwaltung',
-  city: '42094 Wuppertal'
+  city: '80331 München'
 };
 
 const VERMITTLER_INFO = {
   vertragsnummer: '2000034279',
   vermittlernummer: '0300/0001',
   admNummer: '00186418',
-  monatJahr: '06/2021',
-  laufId: '6789',
-  abrechnungsdatum: '07.06.2021'
+  monatJahr: '06/2024',
+  laufId: '7890',
+  abrechnungsdatum: '07.06.2024'
 };
 
 // ========================
@@ -128,60 +128,88 @@ interface KontoRow {
   haben: number;
 }
 
-// Beispieldaten generieren
-function getKVAbschlussData(): { barmenia: KVAbschlussRow[], gothaer: KVAbschlussRow[] } {
+// Beispieldaten generieren - mit realistischen Spezialfällen
+function getKVAbschlussData(): { alphaKranken: KVAbschlussRow[], alphaPlus: KVAbschlussRow[] } {
   return {
-    barmenia: [
-      { vn: 'Müller, Hans', vsNr: 'BK-2024-001234', tarif: 'eGP.BA.VD.BT.MB.+', antragsDatum: '15.03.2024', vtsDatum: '01.04.2024', basis: 4527.00, provArt: 'AP', satz: '8 MB', gesamtBetrag: 3021.80, abgerechnet: 3021.80, stornohaftung: '31.03.2029', provFallNr: 'PF-001234', abschlussVerm: 'Eigenvermittlung' },
-      { vn: 'Schmidt, Anna', vsNr: 'BK-2024-001456', tarif: 'eGP.BA.VD.BT.MB.+', antragsDatum: '22.03.2024', vtsDatum: '01.04.2024', basis: 3890.00, provArt: 'AP', satz: '8 MB', gesamtBetrag: 2593.33, abgerechnet: 2593.33, stornohaftung: '31.03.2029', provFallNr: 'PF-001456', abschlussVerm: 'Eigenvermittlung' },
-      { vn: 'Weber, Thomas', vsNr: 'BK-2024-001789', tarif: 'BT-Zahnzusatz', antragsDatum: '28.03.2024', vtsDatum: '01.04.2024', basis: 384.00, provArt: 'AP', satz: '4 MB', gesamtBetrag: 128.00, abgerechnet: 128.00, stornohaftung: '31.03.2029', provFallNr: 'PF-001789', abschlussVerm: 'Eigenvermittlung' },
+    alphaKranken: [
+      // Reguläre Neuabschlüsse
+      { vn: 'Müller, Hans', vsNr: 'AK-2024-001234', tarif: 'PKV Premium Plus', antragsDatum: '15.03.2024', vtsDatum: '01.04.2024', basis: 575.58, provArt: 'AP', satz: '5,25 MB', gesamtBetrag: 3021.80, abgerechnet: 3021.80, stornohaftung: '31.03.2029', provFallNr: 'PF-001234', abschlussVerm: 'Eigenvermittlung' },
+      { vn: 'Schmidt, Anna', vsNr: 'AK-2024-001456', tarif: 'PKV Comfort', antragsDatum: '22.03.2024', vtsDatum: '01.04.2024', basis: 493.97, provArt: 'AP', satz: '5,25 MB', gesamtBetrag: 2593.33, abgerechnet: 2593.33, stornohaftung: '31.03.2029', provFallNr: 'PF-001456', abschlussVerm: 'Eigenvermittlung' },
+      // Zahnzusatz
+      { vn: 'Weber, Thomas', vsNr: 'AK-2024-001789', tarif: 'Zahnzusatz Komfort', antragsDatum: '28.03.2024', vtsDatum: '01.04.2024', basis: 32.00, provArt: 'AP', satz: '4 MB', gesamtBetrag: 128.00, abgerechnet: 128.00, stornohaftung: '31.03.2029', provFallNr: 'PF-001789', abschlussVerm: 'Eigenvermittlung' },
+      // STORNO-RÜCKABRECHNUNG: Vertrag aus 2022, Storno nach 28 Monaten, 32/60 = 53% Rückbelastung
+      { vn: 'Berger, Otto', vsNr: 'AK-2022-000891', tarif: 'PKV Premium Plus', antragsDatum: '01.10.2022', vtsDatum: '01.11.2022', basis: 489.00, provArt: 'ST-AP', satz: '-53%', gesamtBetrag: -1361.42, abgerechnet: -1361.42, stornohaftung: 'Storno 28M', provFallNr: 'ST-000891', abschlussVerm: 'Storno-Rückr.' },
+      // TARIFWECHSEL mit Mehrleistung - AP auf Differenzbeitrag
+      { vn: 'Krause, Dirk', vsNr: 'AK-2021-005432', tarif: 'PKV Comfort→Premium', antragsDatum: '15.05.2024', vtsDatum: '01.06.2024', basis: 125.00, provArt: 'AP-Diff', satz: '5,25 MB', gesamtBetrag: 656.25, abgerechnet: 656.25, stornohaftung: '31.05.2029', provFallNr: 'TW-005432', abschlussVerm: 'Tarifwechsel' },
     ],
-    gothaer: [
-      { vn: 'Fischer, Maria', vsNr: 'GK-2024-002345', tarif: 'MediCompact', antragsDatum: '10.03.2024', vtsDatum: '01.04.2024', basis: 5120.00, provArt: 'AP', satz: '7 MB', gesamtBetrag: 2986.67, abgerechnet: 2986.67, stornohaftung: '31.03.2029', provFallNr: 'PF-002345', abschlussVerm: 'Fremdordnung' },
-      { vn: 'Bauer, Klaus', vsNr: 'GK-2024-002567', tarif: 'MediTop Plus', antragsDatum: '18.03.2024', vtsDatum: '01.04.2024', basis: 6840.00, provArt: 'AP', satz: '8 MB', gesamtBetrag: 4560.00, abgerechnet: 4560.00, stornohaftung: '31.03.2029', provFallNr: 'PF-002567', abschlussVerm: 'Eigenvermittlung' },
+    alphaPlus: [
+      { vn: 'Fischer, Maria', vsNr: 'AP-2024-002345', tarif: 'MediCompact', antragsDatum: '10.03.2024', vtsDatum: '01.04.2024', basis: 568.89, provArt: 'AP', satz: '5,25 MB', gesamtBetrag: 2986.67, abgerechnet: 2986.67, stornohaftung: '31.03.2029', provFallNr: 'PF-002345', abschlussVerm: 'Fremdordnung' },
+      { vn: 'Bauer, Klaus', vsNr: 'AP-2024-002567', tarif: 'MediTop Plus', antragsDatum: '18.03.2024', vtsDatum: '01.04.2024', basis: 868.57, provArt: 'AP', satz: '5,25 MB', gesamtBetrag: 4560.00, abgerechnet: 4560.00, stornohaftung: '31.03.2029', provFallNr: 'PF-002567', abschlussVerm: 'Eigenvermittlung' },
+      // RÜCKWIRKENDE KORREKTUR - Beitrag war falsch erfasst
+      { vn: 'Lange, Herbert', vsNr: 'AP-2024-002123', tarif: 'MediCompact', antragsDatum: '05.02.2024', vtsDatum: '01.03.2024', basis: 45.00, provArt: 'AP-Korr', satz: '5,25 MB', gesamtBetrag: 236.25, abgerechnet: 236.25, stornohaftung: '28.02.2029', provFallNr: 'KO-002123', abschlussVerm: 'Rückw. Korrektur' },
     ]
   };
 }
 
 function getKVLaufendeData(): KVLaufendeRow[] {
   return [
-    { vn: 'Huber, Fritz', vsNr: 'BK-2020-008901', versZweig: 'PKV', faelligkeit: '01.06.2024', selbstVerm: 'Ja', zahlweise: 'mtl', basis: 4200.00, satz: '0,5%', betrag: 21.00, provFallNr: 'PF-L001' },
-    { vn: 'Klein, Sabine', vsNr: 'BK-2019-007654', versZweig: 'PKV', faelligkeit: '01.06.2024', selbstVerm: 'Ja', zahlweise: 'jährl', basis: 5640.00, satz: '0,5%', betrag: 28.20, provFallNr: 'PF-L002' },
-    { vn: 'Braun, Peter', vsNr: 'BK-2021-009876', versZweig: 'Zusatz', faelligkeit: '01.06.2024', selbstVerm: 'Nein', zahlweise: 'mtl', basis: 384.00, satz: '0,3%', betrag: 1.15, provFallNr: 'PF-L003' },
-    { vn: 'Wolf, Eva', vsNr: 'BK-2018-006543', versZweig: 'PKV', faelligkeit: '01.06.2024', selbstVerm: 'Ja', zahlweise: 'mtl', basis: 7920.00, satz: '0,5%', betrag: 39.60, provFallNr: 'PF-L004' },
+    { vn: 'Huber, Fritz', vsNr: 'AK-2020-008901', versZweig: 'PKV', faelligkeit: '01.06.2024', selbstVerm: 'Ja', zahlweise: 'mtl', basis: 4200.00, satz: '1,5%', betrag: 63.00, provFallNr: 'PF-L001' },
+    { vn: 'Klein, Sabine', vsNr: 'AK-2019-007654', versZweig: 'PKV', faelligkeit: '01.06.2024', selbstVerm: 'Ja', zahlweise: 'jährl', basis: 5640.00, satz: '1,5%', betrag: 84.60, provFallNr: 'PF-L002' },
+    { vn: 'Braun, Peter', vsNr: 'AK-2021-009876', versZweig: 'Zusatz', faelligkeit: '01.06.2024', selbstVerm: 'Nein', zahlweise: 'mtl', basis: 384.00, satz: '1,5%', betrag: 5.76, provFallNr: 'PF-L003' },
+    { vn: 'Wolf, Eva', vsNr: 'AK-2018-006543', versZweig: 'PKV', faelligkeit: '01.06.2024', selbstVerm: 'Ja', zahlweise: 'mtl', basis: 7920.00, satz: '1,5%', betrag: 118.80, provFallNr: 'PF-L004' },
   ];
 }
 
 function getKVSuperData(): KVSuperRow[] {
   return [
-    { abschlussVerm: '0300/0002', sparte: 'PKV', tarif: 'eGP.BA.VD', vsNrVn: 'BK-2024-003456 / Meier, Josef', antragsDatum: '05.04.2024', provArt: 'PEP (SP-AP)', vtsDatum: '01.05.2024', basis: 4800.00, satz: '1,0%', uvmSatz: '0,5%', betrag: 48.00, uvmBetrag: 24.00, stornohaftungEnde: '30.04.2029', provFallNr: 'SP-001' },
-    { abschlussVerm: '0300/0003', sparte: 'PKV', tarif: 'MediTop', vsNrVn: 'GK-2024-004567 / Schulz, Andrea', antragsDatum: '12.04.2024', provArt: 'PEP (SP-AP)', vtsDatum: '01.05.2024', basis: 6200.00, satz: '1,0%', uvmSatz: '0,5%', betrag: 62.00, uvmBetrag: 31.00, stornohaftungEnde: '30.04.2029', provFallNr: 'SP-002' },
+    { abschlussVerm: '0300/0002', sparte: 'PKV', tarif: 'Premium Plus', vsNrVn: 'AK-2024-003456 / Meier, Josef', antragsDatum: '05.04.2024', provArt: 'SP-AP', vtsDatum: '01.05.2024', basis: 4800.00, satz: '1,0%', uvmSatz: '0,5%', betrag: 48.00, uvmBetrag: 24.00, stornohaftungEnde: '30.04.2029', provFallNr: 'SP-001' },
+    { abschlussVerm: '0300/0003', sparte: 'PKV', tarif: 'MediTop', vsNrVn: 'AP-2024-004567 / Schulz, Andrea', antragsDatum: '12.04.2024', provArt: 'SP-AP', vtsDatum: '01.05.2024', basis: 6200.00, satz: '1,0%', uvmSatz: '0,5%', betrag: 62.00, uvmBetrag: 31.00, stornohaftungEnde: '30.04.2029', provFallNr: 'SP-002' },
   ];
 }
 
-function getSHUKAbschlussData(): { barmenia: SHUKAbschlussRow[], gothaer: SHUKAbschlussRow[] } {
+function getSHUKAbschlussData(): { alphaSach: SHUKAbschlussRow[], alphaKfz: SHUKAbschlussRow[] } {
   return {
-    barmenia: [
-      { vn: 'Hoffmann, Lisa', vsNr: 'BA-2024-010234', tarifgruppe: 'Hausrat Premium', antragsDatum: '05.04.2024', vtsDatum: '01.05.2024', basis: 289.00, provArt: 'AP', satz: '25% (22%, 3%, 0%, 0%)', gesamtBetrag: 72.25, abgerechnet: 72.25, stornohaftungEnde: '30.04.2026', provFallNr: 'SHUK-001', buchmonat: '05/2024', abschlussVerm: 'Eigenvermittlung' },
-      { vn: 'Lang, Michael', vsNr: 'BA-2024-010456', tarifgruppe: 'Wohngebäude', antragsDatum: '10.04.2024', vtsDatum: '01.05.2024', basis: 1245.00, provArt: 'AP', satz: '20% (18%, 2%, 0%, 0%)', gesamtBetrag: 249.00, abgerechnet: 249.00, stornohaftungEnde: '30.04.2026', provFallNr: 'SHUK-002', buchmonat: '05/2024', abschlussVerm: 'Eigenvermittlung' },
-      { vn: 'Roth, Sandra', vsNr: 'BA-2024-010789', tarifgruppe: 'PHV Exklusiv', antragsDatum: '15.04.2024', vtsDatum: '01.05.2024', basis: 128.00, provArt: 'AP', satz: '30% (25%, 5%, 0%, 0%)', gesamtBetrag: 38.40, abgerechnet: 38.40, stornohaftungEnde: '30.04.2026', provFallNr: 'SHUK-003', buchmonat: '05/2024', abschlussVerm: 'Fremdordnung' },
+    alphaSach: [
+      // Reguläre Neuabschlüsse
+      { vn: 'Hoffmann, Lisa', vsNr: 'AS-2024-010234', tarifgruppe: 'Hausrat Premium', antragsDatum: '05.04.2024', vtsDatum: '01.05.2024', basis: 289.00, provArt: 'AP', satz: '60%', gesamtBetrag: 173.40, abgerechnet: 173.40, stornohaftungEnde: '30.04.2029', provFallNr: 'SHUK-001', buchmonat: '05/2024', abschlussVerm: 'Eigenvermittlung' },
+      { vn: 'Lang, Michael', vsNr: 'AS-2024-010456', tarifgruppe: 'Wohngebäude', antragsDatum: '10.04.2024', vtsDatum: '01.05.2024', basis: 1245.00, provArt: 'AP', satz: '60%', gesamtBetrag: 747.00, abgerechnet: 747.00, stornohaftungEnde: '30.04.2029', provFallNr: 'SHUK-002', buchmonat: '05/2024', abschlussVerm: 'Eigenvermittlung' },
+      { vn: 'Roth, Sandra', vsNr: 'AS-2024-010789', tarifgruppe: 'PHV Exklusiv', antragsDatum: '15.04.2024', vtsDatum: '01.05.2024', basis: 128.00, provArt: 'AP', satz: '60%', gesamtBetrag: 76.80, abgerechnet: 76.80, stornohaftungEnde: '30.04.2029', provFallNr: 'SHUK-003', buchmonat: '05/2024', abschlussVerm: 'Fremdordnung' },
+      // BEITRAGSERHÖHUNG - Versicherungssumme wurde erhöht
+      { vn: 'Neu, Markus', vsNr: 'AS-2021-007890', tarifgruppe: 'Hausrat Premium', antragsDatum: '01.06.2024', vtsDatum: '01.06.2024', basis: 85.00, provArt: 'AP-Erhöh', satz: '60%', gesamtBetrag: 51.00, abgerechnet: 51.00, stornohaftungEnde: '31.05.2026', provFallNr: 'BE-007890', buchmonat: '06/2024', abschlussVerm: 'Beitragserhöh.' },
+      // STORNO-RÜCKABRECHNUNG - 5J-Vertrag nach 2 Jahren gekündigt = 60% Rückbelastung
+      { vn: 'Alt, Friedrich', vsNr: 'AS-2022-004567', tarifgruppe: 'Wohngebäude', antragsDatum: '01.06.2022', vtsDatum: '01.07.2022', basis: 980.00, provArt: 'ST-AP', satz: '-60%', gesamtBetrag: -352.80, abgerechnet: -352.80, stornohaftungEnde: 'Storno 24M', provFallNr: 'ST-004567', buchmonat: '06/2024', abschlussVerm: 'Storno-Rückr.' },
     ],
-    gothaer: [
-      { vn: 'Koch, Stefan', vsNr: 'GA-2024-020123', tarifgruppe: 'Kfz-Vollkasko', antragsDatum: '08.04.2024', vtsDatum: '01.05.2024', basis: 856.00, provArt: 'AP', satz: '12% (10%, 2%, 0%, 0%)', gesamtBetrag: 102.72, abgerechnet: 102.72, stornohaftungEnde: '30.04.2026', provFallNr: 'SHUK-004', buchmonat: '05/2024', abschlussVerm: 'Eigenvermittlung' },
-      { vn: 'Berg, Julia', vsNr: 'GA-2024-020456', tarifgruppe: 'Unfall Premium', antragsDatum: '20.04.2024', vtsDatum: '01.05.2024', basis: 324.00, provArt: 'AP', satz: '28% (24%, 4%, 0%, 0%)', gesamtBetrag: 90.72, abgerechnet: 90.72, stornohaftungEnde: '30.04.2026', provFallNr: 'SHUK-005', buchmonat: '05/2024', abschlussVerm: 'Eigenvermittlung' },
+    alphaKfz: [
+      // Kfz-Bestand (keine separate AP, nur FP)
+      { vn: 'Koch, Stefan', vsNr: 'AK-2024-020123', tarifgruppe: 'Kfz-Vollkasko', antragsDatum: '08.04.2024', vtsDatum: '01.05.2024', basis: 856.00, provArt: 'FP', satz: '7%', gesamtBetrag: 59.92, abgerechnet: 59.92, stornohaftungEnde: '30.04.2025', provFallNr: 'SHUK-004', buchmonat: '05/2024', abschlussVerm: 'Eigenvermittlung' },
+      // Unfall mit hoher AP
+      { vn: 'Berg, Julia', vsNr: 'AS-2024-020456', tarifgruppe: 'Unfall Premium', antragsDatum: '20.04.2024', vtsDatum: '01.05.2024', basis: 324.00, provArt: 'AP', satz: '60%', gesamtBetrag: 194.40, abgerechnet: 194.40, stornohaftungEnde: '30.04.2029', provFallNr: 'SHUK-005', buchmonat: '05/2024', abschlussVerm: 'Eigenvermittlung' },
+      // PRODUKTANPASSUNG - Tarifwechsel ohne neue AP
+      { vn: 'Meyer, Karl', vsNr: 'AK-2023-015678', tarifgruppe: 'Kfz TK→VK', antragsDatum: '15.05.2024', vtsDatum: '15.05.2024', basis: 245.00, provArt: 'FP-Diff', satz: '7%', gesamtBetrag: 17.15, abgerechnet: 17.15, stornohaftungEnde: '14.05.2025', provFallNr: 'PA-015678', buchmonat: '05/2024', abschlussVerm: 'Produktanpass.' },
     ]
   };
 }
 
-function getLVAbschlussData(): { barmenia: LVAbschlussRow[], gothaer: LVAbschlussRow[] } {
+function getLVAbschlussData(): { alphaLeben: LVAbschlussRow[], alphaRente: LVAbschlussRow[] } {
   return {
-    barmenia: [
-      { vn: 'Schneider, Robert', vsNr: 'BL-2024-030123', tarif: 'FlexVorsorge Plus', antragsDatum: '01.04.2024', vtsDatum: '01.05.2024', basis: 48000.00, provArt: 'AP', satz: '40‰', gesamtBetrag: 1920.00, abgerechnet: 384.00, stornohaftungEnde: '30.04.2029', modus: '20%', faelligZum: '01.05.2025', faelligerBeitrag: 2400.00 },
-      { vn: 'Wagner, Christine', vsNr: 'BL-2024-030456', tarif: 'BU-Schutz Komfort', antragsDatum: '10.04.2024', vtsDatum: '01.05.2024', basis: 36000.00, provArt: 'AP', satz: '45‰', gesamtBetrag: 1620.00, abgerechnet: 324.00, stornohaftungEnde: '30.04.2029', modus: '20%', faelligZum: '01.05.2025', faelligerBeitrag: 1200.00 },
+    alphaLeben: [
+      // Reguläre Neuabschlüsse - Bewertete Beitragssumme = Jahresbeitrag × Laufzeit (max 35 J.)
+      { vn: 'Schneider, Robert', vsNr: 'AL-2024-030123', tarif: 'FlexVorsorge Plus', antragsDatum: '01.04.2024', vtsDatum: '01.05.2024', basis: 48000.00, provArt: 'AP', satz: '23‰', gesamtBetrag: 1104.00, abgerechnet: 220.80, stornohaftungEnde: '30.04.2029', modus: '20%', faelligZum: '01.05.2025', faelligerBeitrag: 2400.00 },
+      { vn: 'Wagner, Christine', vsNr: 'AL-2024-030456', tarif: 'BU-Schutz Komfort', antragsDatum: '10.04.2024', vtsDatum: '01.05.2024', basis: 36000.00, provArt: 'AP', satz: '23‰', gesamtBetrag: 828.00, abgerechnet: 165.60, stornohaftungEnde: '30.04.2029', modus: '20%', faelligZum: '01.05.2025', faelligerBeitrag: 1200.00 },
+      // DYNAMIKERHÖHUNG - Erhöhung um 5% = 120 EUR/Jahr × 20 J. Restlaufzeit = 2.400 EUR Erhöhungsbeitragssumme
+      { vn: 'Jansen, Maria', vsNr: 'AL-2019-025789', tarif: 'FlexVorsorge Dyn.', antragsDatum: '01.06.2024', vtsDatum: '01.06.2024', basis: 2400.00, provArt: 'DYN-AP', satz: '23‰', gesamtBetrag: 55.20, abgerechnet: 11.04, stornohaftungEnde: '31.05.2029', modus: '20%', faelligZum: '01.06.2025', faelligerBeitrag: 120.00 },
+      // STORNO-RÜCKABRECHNUNG (Beitragsfreistellung nach 18 Monaten = 42/60 = 70% Rückbelastung)
+      { vn: 'Franke, Heinrich', vsNr: 'AL-2023-028456', tarif: 'Kapital-LV', antragsDatum: '01.01.2023', vtsDatum: '01.02.2023', basis: 52500.00, provArt: 'ST-AP', satz: '-70%', gesamtBetrag: -845.25, abgerechnet: -845.25, stornohaftungEnde: 'Beitr.frei 18M', modus: '100%', faelligZum: '-', faelligerBeitrag: 0 },
+      // NACHPROVISION (2. Jahr der ratierlichen Auszahlung)
+      { vn: 'Vogel, Ernst', vsNr: 'AL-2023-022345', tarif: 'FlexVorsorge Plus', antragsDatum: '15.05.2023', vtsDatum: '01.06.2023', basis: 0, provArt: 'NP (2/5)', satz: '20%', gesamtBetrag: 276.00, abgerechnet: 276.00, stornohaftungEnde: '31.05.2028', modus: 'Rate 2', faelligZum: '01.06.2024', faelligerBeitrag: 2400.00 },
     ],
-    gothaer: [
-      { vn: 'Hartmann, Frank', vsNr: 'GL-2024-040123', tarif: 'Renten-Invest', antragsDatum: '05.04.2024', vtsDatum: '01.05.2024', basis: 72000.00, provArt: 'AP', satz: '38‰', gesamtBetrag: 2736.00, abgerechnet: 547.20, stornohaftungEnde: '30.04.2029', modus: '20%', faelligZum: '01.05.2025', faelligerBeitrag: 3000.00 },
-      { vn: 'Werner, Petra', vsNr: 'GL-2024-040456', tarif: 'Fondsgebundene RV', antragsDatum: '15.04.2024', vtsDatum: '01.05.2024', basis: 60000.00, provArt: 'AP', satz: '40‰', gesamtBetrag: 2400.00, abgerechnet: 480.00, stornohaftungEnde: '30.04.2029', modus: '20%', faelligZum: '01.05.2025', faelligerBeitrag: 2500.00 },
+    alphaRente: [
+      { vn: 'Hartmann, Frank', vsNr: 'AR-2024-040123', tarif: 'Renten-Invest', antragsDatum: '05.04.2024', vtsDatum: '01.05.2024', basis: 72000.00, provArt: 'AP', satz: '23‰', gesamtBetrag: 1656.00, abgerechnet: 331.20, stornohaftungEnde: '30.04.2029', modus: '20%', faelligZum: '01.05.2025', faelligerBeitrag: 3000.00 },
+      { vn: 'Werner, Petra', vsNr: 'AR-2024-040456', tarif: 'Fondsgebundene RV', antragsDatum: '15.04.2024', vtsDatum: '01.05.2024', basis: 60000.00, provArt: 'AP', satz: '23‰', gesamtBetrag: 1380.00, abgerechnet: 276.00, stornohaftungEnde: '30.04.2029', modus: '20%', faelligZum: '01.05.2025', faelligerBeitrag: 2500.00 },
+      // BEITRAGSREDUZIERUNG - 40% weniger Beitrag nach 24 Monaten = 40% × (36/60) = 24% Rückbelastung
+      { vn: 'Sommer, Ingrid', vsNr: 'AR-2022-038901', tarif: 'Renten-Invest', antragsDatum: '01.05.2022', vtsDatum: '01.06.2022', basis: 24000.00, provArt: 'RED-AP', satz: '-24%', gesamtBetrag: -132.48, abgerechnet: -132.48, stornohaftungEnde: 'Reduz. 24M', modus: '100%', faelligZum: '-', faelligerBeitrag: 0 },
+      // DYNAMIKERHÖHUNG für Rente
+      { vn: 'Bach, Helmut', vsNr: 'AR-2020-035678', tarif: 'Renten-Invest Dyn.', antragsDatum: '01.06.2024', vtsDatum: '01.06.2024', basis: 3150.00, provArt: 'DYN-AP', satz: '23‰', gesamtBetrag: 72.45, abgerechnet: 14.49, stornohaftungEnde: '31.05.2029', modus: '20%', faelligZum: '01.06.2025', faelligerBeitrag: 150.00 },
     ]
   };
 }
@@ -473,8 +501,8 @@ export function generateVergütungsnachweise(): Blob {
 
   const kvAbschlussData = getKVAbschlussData();
 
-  // Barmenia Kranken
-  drawSubsectionHeader('Barmenia Kranken (BK)');
+  // Alpha Kranken
+  drawSubsectionHeader('Alpha Kranken (AK)');
 
   const kvAbschlussHeaders = ['VN', 'VS-Nr', 'Tarif', 'Antrag', 'VTS', 'Basis €', 'Art', 'Satz', 'Betrag €', 'Stornohaft.', 'Prov-Fall'];
   const kvAbschlussWidths = [22, 24, 22, 16, 16, 18, 10, 14, 18, 18, 18];
@@ -484,7 +512,7 @@ export function generateVergütungsnachweise(): Blob {
   doc.setFontSize(6);
 
   let bkSum = 0;
-  kvAbschlussData.barmenia.forEach((row, idx) => {
+  kvAbschlussData.alphaKranken.forEach((row, idx) => {
     if (idx % 2 === 1) {
       doc.setFillColor(COLOR_TABLE_ALT[0], COLOR_TABLE_ALT[1], COLOR_TABLE_ALT[2]);
       doc.rect(ML, y, CW, 5, 'F');
@@ -511,19 +539,19 @@ export function generateVergütungsnachweise(): Blob {
   // BK Summe
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(7);
-  doc.text('Summe Barmenia Kranken:', ML + 2, y + 3);
+  doc.text('Summe Alpha Kranken:', ML + 2, y + 3);
   doc.text(formatEuro(bkSum) + ' EUR', ML + CW - 5, y + 3, { align: 'right' });
   y += 8;
 
-  // Gothaer Kranken
-  drawSubsectionHeader('Gothaer Kranken (GK)');
+  // Alpha Plus
+  drawSubsectionHeader('Alpha Plus (AP)');
   drawTableHeader(kvAbschlussHeaders, kvAbschlussWidths);
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(6);
 
   let gkSum = 0;
-  kvAbschlussData.gothaer.forEach((row, idx) => {
+  kvAbschlussData.alphaPlus.forEach((row, idx) => {
     if (idx % 2 === 1) {
       doc.setFillColor(COLOR_TABLE_ALT[0], COLOR_TABLE_ALT[1], COLOR_TABLE_ALT[2]);
       doc.rect(ML, y, CW, 5, 'F');
@@ -550,7 +578,7 @@ export function generateVergütungsnachweise(): Blob {
   // GK Summe
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(7);
-  doc.text('Summe Gothaer Kranken:', ML + 2, y + 3);
+  doc.text('Summe Alpha Plus:', ML + 2, y + 3);
   doc.text(formatEuro(gkSum) + ' EUR', ML + CW - 5, y + 3, { align: 'right' });
   y += 8;
 
@@ -581,7 +609,7 @@ export function generateVergütungsnachweise(): Blob {
 
   const kvLaufendeData = getKVLaufendeData();
 
-  drawSubsectionHeader('Barmenia Kranken (BK) - Laufende Vergütungen');
+  drawSubsectionHeader('Alpha Kranken (AK) - Laufende Vergütungen');
 
   const kvLaufendeHeaders = ['VN', 'VS-Nr', 'Vers.-zweig', 'Fälligkeit', 'Selbst verm.', 'Zahlw.', 'Basis €', 'Satz', 'Betrag €', 'Prov-Fall'];
   const kvLaufendeWidths = [26, 26, 20, 18, 18, 14, 18, 14, 18, 18];
@@ -638,7 +666,7 @@ export function generateVergütungsnachweise(): Blob {
 
   const kvSuperData = getKVSuperData();
 
-  drawSubsectionHeader('Barmenia Kranken (BK)');
+  drawSubsectionHeader('Alpha Kranken (AK)');
 
   const kvSuperHeaders = ['Abschl.-Verm.', 'Sparte', 'Tarif', 'VS-Nr / VN', 'Antrag', 'Prov.-Art', 'Basis €', 'Satz', 'Betrag €', 'Stornoh.'];
   const kvSuperWidths = [20, 14, 18, 36, 16, 20, 18, 12, 18, 18];
@@ -691,12 +719,12 @@ export function generateVergütungsnachweise(): Blob {
   pageNumber++;
   y = MT;
 
-  drawHeader('Vergütungsnachweis Abschlussprovisionen*', 'Barmenia', 'Allgemeine Versicherungs-AG');
+  drawHeader('Vergütungsnachweis Abschlussprovisionen*', 'Alpha', 'Allgemeine Versicherungs-AG');
 
   const shukAbschlussData = getSHUKAbschlussData();
 
-  // Barmenia Allgemeine
-  drawSubsectionHeader('Barmenia Allgemeine (BA)');
+  // Alpha Sach
+  drawSubsectionHeader('Alpha Sach (AS)');
 
   const shukHeaders = ['VN', 'VS-Nr', 'Tarifgruppe', 'Antrag', 'VTS', 'Basis €', 'Art', 'Satz', 'Betrag €', 'Stornoh.', 'Buchm.'];
   const shukWidths = [22, 24, 22, 16, 16, 16, 10, 26, 16, 18, 14];
@@ -706,7 +734,7 @@ export function generateVergütungsnachweise(): Blob {
   doc.setFontSize(6);
 
   let baSum = 0;
-  shukAbschlussData.barmenia.forEach((row, idx) => {
+  shukAbschlussData.alphaSach.forEach((row, idx) => {
     if (idx % 2 === 1) {
       doc.setFillColor(COLOR_TABLE_ALT[0], COLOR_TABLE_ALT[1], COLOR_TABLE_ALT[2]);
       doc.rect(ML, y, CW, 5, 'F');
@@ -733,19 +761,19 @@ export function generateVergütungsnachweise(): Blob {
   // BA Summe
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(7);
-  doc.text('Summe Barmenia Allgemeine:', ML + 2, y + 3);
+  doc.text('Summe Alpha Sach:', ML + 2, y + 3);
   doc.text(formatEuro(baSum) + ' EUR', ML + CW - 5, y + 3, { align: 'right' });
   y += 8;
 
-  // Gothaer Allgemeine
-  drawSubsectionHeader('Gothaer Allgemeine (GA)');
+  // Alpha Kfz
+  drawSubsectionHeader('Alpha Kfz (AK)');
   drawTableHeader(shukHeaders, shukWidths);
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(6);
 
   let gaSum = 0;
-  shukAbschlussData.gothaer.forEach((row, idx) => {
+  shukAbschlussData.alphaKfz.forEach((row, idx) => {
     if (idx % 2 === 1) {
       doc.setFillColor(COLOR_TABLE_ALT[0], COLOR_TABLE_ALT[1], COLOR_TABLE_ALT[2]);
       doc.rect(ML, y, CW, 5, 'F');
@@ -772,7 +800,7 @@ export function generateVergütungsnachweise(): Blob {
   // GA Summe
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(7);
-  doc.text('Summe Gothaer Allgemeine:', ML + 2, y + 3);
+  doc.text('Summe Alpha Kfz:', ML + 2, y + 3);
   doc.text(formatEuro(gaSum) + ' EUR', ML + CW - 5, y + 3, { align: 'right' });
   y += 8;
 
@@ -793,12 +821,12 @@ export function generateVergütungsnachweise(): Blob {
   pageNumber++;
   y = MT;
 
-  drawHeader('Vergütungsnachweis Abschlussprovisionen*', 'Barmenia', 'Lebensversicherung a.G.');
+  drawHeader('Vergütungsnachweis Abschlussprovisionen*', 'Alpha', 'Lebensversicherung AG');
 
   const lvAbschlussData = getLVAbschlussData();
 
-  // Barmenia Leben
-  drawSubsectionHeader('Barmenia Leben (BL)');
+  // Alpha Leben
+  drawSubsectionHeader('Alpha Leben (AL)');
 
   const lvHeaders = ['VN', 'VS-Nr', 'Tarif', 'Antrag', 'VTS', 'Basis €', 'Art', 'Satz', 'Gesamt €', 'Abger. €', 'Modus', 'Fällig'];
   const lvWidths = [20, 22, 22, 16, 16, 18, 10, 12, 18, 16, 12, 16];
@@ -808,7 +836,7 @@ export function generateVergütungsnachweise(): Blob {
   doc.setFontSize(6);
 
   let blSum = 0;
-  lvAbschlussData.barmenia.forEach((row, idx) => {
+  lvAbschlussData.alphaLeben.forEach((row, idx) => {
     if (idx % 2 === 1) {
       doc.setFillColor(COLOR_TABLE_ALT[0], COLOR_TABLE_ALT[1], COLOR_TABLE_ALT[2]);
       doc.rect(ML, y, CW, 5, 'F');
@@ -836,19 +864,19 @@ export function generateVergütungsnachweise(): Blob {
   // BL Summe
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(7);
-  doc.text('Summe Barmenia Leben:', ML + 2, y + 3);
+  doc.text('Summe Alpha Leben:', ML + 2, y + 3);
   doc.text(formatEuro(blSum) + ' EUR', ML + CW - 5, y + 3, { align: 'right' });
   y += 8;
 
-  // Gothaer Leben
-  drawSubsectionHeader('BarmeniaGothaer Leben (GL)');
+  // Alpha Rente
+  drawSubsectionHeader('Alpha Rente (AR)');
   drawTableHeader(lvHeaders, lvWidths);
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(6);
 
   let glSum = 0;
-  lvAbschlussData.gothaer.forEach((row, idx) => {
+  lvAbschlussData.alphaRente.forEach((row, idx) => {
     if (idx % 2 === 1) {
       doc.setFillColor(COLOR_TABLE_ALT[0], COLOR_TABLE_ALT[1], COLOR_TABLE_ALT[2]);
       doc.rect(ML, y, CW, 5, 'F');
@@ -876,7 +904,7 @@ export function generateVergütungsnachweise(): Blob {
   // GL Summe
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(7);
-  doc.text('Summe BarmeniaGothaer Leben:', ML + 2, y + 3);
+  doc.text('Summe Alpha Rente:', ML + 2, y + 3);
   doc.text(formatEuro(glSum) + ' EUR', ML + CW - 5, y + 3, { align: 'right' });
   y += 8;
 
