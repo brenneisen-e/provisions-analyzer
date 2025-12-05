@@ -5,18 +5,25 @@ interface ChunkingOptions {
   maxChunkSize?: number; // Max characters per chunk
   overlapSize?: number; // Characters to overlap between chunks
   preserveStructure?: boolean; // Try to preserve paragraph/section boundaries
+  fastMode?: boolean; // Use larger chunks for faster processing
 }
 
 /**
  * Analysiert ein PDF-Dokument und teilt es in semantisch sinnvolle Chunks
+ *
+ * Standard: ~15.000 Zeichen pro Chunk (ca. 3-4 Seiten)
+ * Fast Mode: ~25.000 Zeichen pro Chunk (ca. 6-8 Seiten)
+ *
+ * Bei 100 Seiten ergibt das ca. 25-35 Chunks statt 400!
  */
 export function chunkDocument(
   document: ExtractedDocument,
   options: ChunkingOptions = {}
 ): DocumentChunk[] {
+  const isFastMode = options.fastMode ?? false;
   const {
-    maxChunkSize = 4000,
-    overlapSize = 200,
+    maxChunkSize = isFastMode ? 25000 : 15000,  // Deutlich größere Chunks
+    overlapSize = isFastMode ? 100 : 300,        // Weniger Overlap
     preserveStructure = true
   } = options;
 

@@ -174,17 +174,17 @@ export function generateSampleProvisionStatement(): Blob {
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(...COLOR_GRAY_DARK);
 
-  // Spalten-Definition: [x-Position, Breite, Ausrichtung, Header]
+  // Spalten-Definition - optimiert für A4 (180mm Inhaltsbreite)
   const cols = [
-    { x: MARGIN_LEFT + 2, header: 'Datum' },
-    { x: MARGIN_LEFT + 22, header: 'VS-Nummer' },
-    { x: MARGIN_LEFT + 48, header: 'Kunde' },
-    { x: MARGIN_LEFT + 72, header: 'Gesellschaft' },
-    { x: MARGIN_LEFT + 98, header: 'Sparte' },
-    { x: MARGIN_LEFT + 116, header: 'Art' },
-    { x: MARGIN_LEFT + 135, header: 'Basis €' },
-    { x: MARGIN_LEFT + 152, header: 'Satz' },
-    { x: MARGIN_LEFT + 168, header: 'Provision €' },
+    { x: MARGIN_LEFT + 2, header: 'Datum' },        // 0-18
+    { x: MARGIN_LEFT + 18, header: 'VS-Nr.' },      // 18-40
+    { x: MARGIN_LEFT + 40, header: 'Kunde' },       // 40-58
+    { x: MARGIN_LEFT + 58, header: 'Gesellsch.' }, // 58-78
+    { x: MARGIN_LEFT + 78, header: 'Sparte' },      // 78-92
+    { x: MARGIN_LEFT + 95, header: 'Art' },         // 92-105
+    { x: MARGIN_LEFT + 108, header: 'Basis' },      // 105-128
+    { x: MARGIN_LEFT + 130, header: 'Satz' },       // 128-145
+    { x: MARGIN_LEFT + 148, header: 'Provision' },  // 145-180
   ];
 
   cols.forEach(col => {
@@ -232,25 +232,25 @@ export function generateSampleProvisionStatement(): Blob {
 
     doc.setTextColor(...COLOR_GRAY_DARK);
 
-    // Daten eintragen
+    // Daten eintragen - mit Kürzung für enge Spalten
     doc.text(tx.datum, cols[0].x, y + 5);
-    doc.text(tx.vsnr, cols[1].x, y + 5);
-    doc.text(tx.kunde.substring(0, 12), cols[2].x, y + 5);
-    doc.text(tx.gesellschaft.substring(0, 12), cols[3].x, y + 5);
-    doc.text(tx.sparte, cols[4].x, y + 5);
+    doc.text(tx.vsnr.substring(0, 14), cols[1].x, y + 5);
+    doc.text(tx.kunde.substring(0, 10), cols[2].x, y + 5);
+    doc.text(tx.gesellschaft.substring(0, 10), cols[3].x, y + 5);
+    doc.text(tx.sparte.substring(0, 8), cols[4].x, y + 5);
     doc.text(tx.artCode, cols[5].x, y + 5);
 
-    // Basis rechtsbündig
+    // Basis rechtsbündig (Spaltenbreite ~20mm)
     const basisStr = tx.basis >= 1000 ? Math.round(tx.basis).toLocaleString('de-DE') : tx.basis.toFixed(0);
-    doc.text(basisStr, cols[6].x + 14, y + 5, { align: 'right' });
+    doc.text(basisStr, cols[7].x - 3, y + 5, { align: 'right' });
 
     doc.text(tx.satz, cols[7].x, y + 5);
 
-    // Provision rechtsbündig, rot wenn negativ
+    // Provision rechtsbündig am rechten Rand (vor MARGIN_RIGHT)
     if (tx.provision < 0) {
       doc.setTextColor(...COLOR_RED);
     }
-    doc.text(formatEuroShort(tx.provision), cols[8].x + 22, y + 5, { align: 'right' });
+    doc.text(formatEuroShort(tx.provision), PAGE_WIDTH - MARGIN_RIGHT - 2, y + 5, { align: 'right' });
     doc.setTextColor(...COLOR_GRAY_DARK);
 
     y += 7;

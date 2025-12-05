@@ -9,6 +9,7 @@ import { extractTextFromPDF } from '../services/pdfParser';
 import { chunkDocument } from '../services/chunkAnalyzer';
 import { extractRulesFromDocument } from '../services/ruleExtractor';
 import { generateSampleProvisionStatement, downloadBlob } from '../services/pdfGenerator';
+import { generateSampleProvisionsRules } from '../services/provisionsRulesGenerator';
 import type { ExtractedDocument } from '../types';
 
 export const SetupView: React.FC = () => {
@@ -150,7 +151,7 @@ export const SetupView: React.FC = () => {
     }
   };
 
-  // Generate sample PDF
+  // Generate sample PDF (Provisionsabrechnung)
   const handleGenerateSample = () => {
     const blob = generateSampleProvisionStatement();
     downloadBlob(blob, 'Beispiel-Provisionsabrechnung.pdf');
@@ -158,6 +159,24 @@ export const SetupView: React.FC = () => {
       type: 'success',
       message: 'Beispiel-Provisionsabrechnung wurde heruntergeladen'
     });
+  };
+
+  // Generate sample Provisionsbestimmungen PDF
+  const handleGenerateProvisionsRules = () => {
+    addNotification({
+      type: 'info',
+      message: 'Generiere Provisionsbestimmungen (ca. 80 Seiten)...'
+    });
+
+    // Kurze Verzögerung für UI-Feedback
+    setTimeout(() => {
+      const blob = generateSampleProvisionsRules();
+      downloadBlob(blob, 'Alpha-Versicherung-Provisionsbestimmungen.pdf');
+      addNotification({
+        type: 'success',
+        message: 'Provisionsbestimmungen (80 Seiten) wurden heruntergeladen'
+      });
+    }, 100);
   };
 
   // Clear stored rules
@@ -327,17 +346,45 @@ export const SetupView: React.FC = () => {
       {/* Sample Generator */}
       <Card>
         <CardHeader
-          title="Test-Abrechnung"
-          description="Generieren Sie eine Beispiel-Provisionsabrechnung zum Testen"
+          title="Test-Dokumente generieren"
+          description="Generieren Sie Beispiel-PDFs zum Testen des Tools"
         />
 
-        <Button
-          variant="outline"
-          onClick={handleGenerateSample}
-          leftIcon={<Download className="w-4 h-4" />}
-        >
-          Beispiel-PDF generieren
-        </Button>
+        <div className="space-y-3">
+          <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+            <p className="text-sm font-medium text-blue-800 mb-2">
+              Beispiel-Provisionsbestimmungen (Alpha Versicherung)
+            </p>
+            <p className="text-xs text-blue-600 mb-3">
+              Generiert ein vollständiges 80-seitiges Dokument mit allen Provisionsregeln
+            </p>
+            <Button
+              variant="outline"
+              onClick={handleGenerateProvisionsRules}
+              leftIcon={<FileText className="w-4 h-4" />}
+              className="w-full"
+            >
+              Provisionsbestimmungen generieren (80 Seiten)
+            </Button>
+          </div>
+
+          <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
+            <p className="text-sm font-medium text-gray-800 mb-2">
+              Beispiel-Provisionsabrechnung
+            </p>
+            <p className="text-xs text-gray-600 mb-3">
+              Generiert eine Muster-Abrechnung mit 15 Transaktionen
+            </p>
+            <Button
+              variant="outline"
+              onClick={handleGenerateSample}
+              leftIcon={<Download className="w-4 h-4" />}
+              className="w-full"
+            >
+              Provisionsabrechnung generieren
+            </Button>
+          </div>
+        </div>
       </Card>
 
       {/* Continue Button */}
