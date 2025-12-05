@@ -42,6 +42,8 @@ export function chunkDocument(
  * OPTIMIERTES Chunking - sammelt Content bis maxChunkSize erreicht ist
  * Splittet nur an natürlichen Grenzen (Satzende, Absatz)
  * KEINE separaten Chunks für jeden § Paragraphen!
+ *
+ * VERBESSERT: Robustere Splitpunkt-Suche und Sicherheitslimits
  */
 function optimizedChunking(
   document: ExtractedDocument,
@@ -51,8 +53,18 @@ function optimizedChunking(
   const chunks: DocumentChunk[] = [];
   const fullText = document.fullText;
 
+  // Sicherheitsgrenze: Maximal 50 Chunks (typischerweise 5-10 für ein 60-80 Seiten Dokument)
+  const MAX_CHUNKS = 50;
+
+  // Debug-Info
+  console.log(`[Chunking] Dokument: ${document.fileName}`);
+  console.log(`[Chunking] Gesamtlänge: ${fullText.length} Zeichen`);
+  console.log(`[Chunking] Seiten: ${document.pages.length}`);
+  console.log(`[Chunking] maxChunkSize: ${maxChunkSize}, overlapSize: ${overlapSize}`);
+
   // Wenn Dokument klein genug, nur 1 Chunk
   if (fullText.length <= maxChunkSize) {
+    console.log(`[Chunking] Dokument passt in 1 Chunk`);
     return [{
       id: generateSimpleId(),
       pageStart: 1,
@@ -62,36 +74,55 @@ function optimizedChunking(
     }];
   }
 
+  // Berechne erwartete Chunk-Anzahl
+  const expectedChunks = Math.ceil(fullText.length / (maxChunkSize - overlapSize));
+  console.log(`[Chunking] Erwartete Chunks: ~${expectedChunks}`);
+
   let position = 0;
   let chunkIndex = 0;
+  let iterationCount = 0;
+  const maxIterations = MAX_CHUNKS + 10; // Sicherheit gegen Endlosschleifen
 
-  while (position < fullText.length) {
+  while (position < fullText.length && iterationCount < maxIterations) {
+    iterationCount++;
+
     // Ziel-Ende berechnen
     let end = Math.min(position + maxChunkSize, fullText.length);
 
     // Wenn nicht am Ende, suche guten Splitpunkt
     if (end < fullText.length) {
-      // Suche rückwärts nach gutem Splitpunkt (max 2000 Zeichen zurück)
-      const searchStart = Math.max(end - 2000, position + maxChunkSize / 2);
+      // Suche in den letzten 2000 Zeichen nach gutem Splitpunkt
+      // Aber niemals vor der Mitte des Chunks (position + maxChunkSize/2)
+      const minSplitPosition = position + Math.floor(maxChunkSize * 0.75); // Mindestens 75% des Chunks
+      const searchStart = Math.max(end - 2000, minSplitPosition);
       let bestSplit = end;
 
+      // Suche nur im Bereich [searchStart, end]
+      const searchRange = fullText.substring(searchStart, end);
+
       // Priorität 1: Doppelter Zeilenumbruch (Absatzende)
-      const doubleNewline = fullText.lastIndexOf('\n\n', end);
-      if (doubleNewline > searchStart) {
-        bestSplit = doubleNewline + 2;
+      const doubleNewlineIndex = searchRange.lastIndexOf('\n\n');
+      if (doubleNewlineIndex >= 0) {
+        bestSplit = searchStart + doubleNewlineIndex + 2;
       } else {
         // Priorität 2: Satzende mit Zeilenumbruch
-        const sentenceEnd = fullText.substring(searchStart, end).search(/[.!?]\s*\n/);
-        if (sentenceEnd > 0) {
-          bestSplit = searchStart + sentenceEnd + fullText.substring(searchStart + sentenceEnd).match(/[.!?]\s*\n/)![0].length;
+        const sentenceEndMatch = searchRange.match(/.*[.!?]\s*\n/);
+        if (sentenceEndMatch) {
+          bestSplit = searchStart + sentenceEndMatch[0].length;
         } else {
           // Priorität 3: Einfacher Zeilenumbruch
-          const newline = fullText.lastIndexOf('\n', end);
-          if (newline > searchStart) {
-            bestSplit = newline + 1;
+          const newlineIndex = searchRange.lastIndexOf('\n');
+          if (newlineIndex >= 0) {
+            bestSplit = searchStart + newlineIndex + 1;
           }
         }
       }
+
+      // Sicherheit: bestSplit muss immer vorwärts gehen
+      if (bestSplit <= position + overlapSize) {
+        bestSplit = end; // Falls kein guter Split gefunden, nutze volle Chunk-Größe
+      }
+
       end = bestSplit;
     }
 
@@ -124,20 +155,47 @@ function optimizedChunking(
         type: 'paragraph'
       });
       chunkIndex++;
+
+      // Warnung wenn zu viele Chunks
+      if (chunkIndex === 20) {
+        console.warn(`[Chunking] WARNUNG: Bereits 20 Chunks erstellt. Position: ${position}/${fullText.length}`);
+      }
     }
 
-    // Nächste Position mit Overlap
-    position = Math.max(position + 1, end - overlapSize);
+    // Nächste Position: Minimaler Fortschritt = maxChunkSize - overlapSize
+    const minProgress = Math.floor(maxChunkSize * 0.9); // Mindestens 90% vorwärts
+    const nextPosition = end - overlapSize;
+    position = Math.max(position + minProgress, nextPosition);
 
     // Sicherheit: Vermeide Endlosschleife
     if (position >= fullText.length - 100) break;
+
+    // Sicherheitsabbruch bei zu vielen Chunks
+    if (chunks.length >= MAX_CHUNKS) {
+      console.warn(`[Chunking] Sicherheitslimit erreicht: ${MAX_CHUNKS} Chunks. Restlicher Text wird in letzten Chunk aufgenommen.`);
+      // Restlichen Text in einen finalen Chunk packen
+      const remainingContent = fullText.substring(position).trim();
+      if (remainingContent.length > 0) {
+        chunks.push({
+          id: generateSimpleId(),
+          pageStart: endPage,
+          pageEnd: document.pages.length,
+          content: remainingContent,
+          title: `Teil ${chunkIndex + 1} (Seiten ${endPage}-${document.pages.length}) [Rest]`,
+          type: 'paragraph'
+        });
+      }
+      break;
+    }
   }
 
+  console.log(`[Chunking] Fertig: ${chunks.length} Chunks erstellt`);
   return chunks;
 }
 
 /**
  * Einfaches Sliding-Window Chunking
+ * Mit Sicherheitslimit für maximale Chunk-Anzahl
  */
 function slidingWindowChunking(
   document: ExtractedDocument,
@@ -146,10 +204,11 @@ function slidingWindowChunking(
 ): DocumentChunk[] {
   const chunks: DocumentChunk[] = [];
   const fullText = document.fullText;
+  const MAX_CHUNKS = 50;
 
   let position = 0;
 
-  while (position < fullText.length) {
+  while (position < fullText.length && chunks.length < MAX_CHUNKS) {
     const end = Math.min(position + maxChunkSize, fullText.length);
 
     // Find page numbers for this chunk
@@ -177,9 +236,24 @@ function slidingWindowChunking(
       type: 'paragraph'
     });
 
-    // Move position with overlap
-    position = end - overlapSize;
+    // Move position with overlap - ensure minimum progress
+    const minProgress = Math.floor(maxChunkSize * 0.9);
+    position = Math.max(position + minProgress, end - overlapSize);
     if (position >= fullText.length - overlapSize) break;
+  }
+
+  // Falls Limit erreicht, Rest in letzten Chunk
+  if (chunks.length >= MAX_CHUNKS && position < fullText.length) {
+    const remainingContent = fullText.substring(position).trim();
+    if (remainingContent.length > 0) {
+      chunks.push({
+        id: generateSimpleId(),
+        pageStart: chunks[chunks.length - 1].pageEnd,
+        pageEnd: document.pages.length,
+        content: remainingContent,
+        type: 'paragraph'
+      });
+    }
   }
 
   return chunks;

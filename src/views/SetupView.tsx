@@ -11,7 +11,6 @@ import { extractRulesFromDocument } from '../services/ruleExtractor';
 import { generateSampleProvisionStatement, downloadBlob } from '../services/pdfGenerator';
 import { generateSampleProvisionsRules } from '../services/provisionsRulesGenerator';
 import { generateVergütungsnachweise } from '../services/verguetungsnachweiseGenerator';
-import type { ExtractedDocument } from '../types';
 
 export const SetupView: React.FC = () => {
   const { apiConfig, setApiKey, setCurrentView, addNotification } = useAppStore();
@@ -77,6 +76,7 @@ export const SetupView: React.FC = () => {
 
     try {
       // Stage 1: Parse PDF
+      console.log('[SetupView] Start PDF-Parsing...');
       setAnalysisProgress({
         stage: 'parsing',
         current: 0,
@@ -91,7 +91,15 @@ export const SetupView: React.FC = () => {
         });
       });
 
+      console.log('[SetupView] PDF-Parsing abgeschlossen:', {
+        fileName: document.fileName,
+        totalPages: document.totalPages,
+        fullTextLength: document.fullText.length,
+        pagesCount: document.pages.length
+      });
+
       // Stage 2: Chunk document
+      console.log('[SetupView] Start Chunking...');
       setAnalysisProgress({
         stage: 'chunking',
         current: 0,
@@ -99,7 +107,7 @@ export const SetupView: React.FC = () => {
         message: 'Dokument wird in Abschnitte unterteilt...'
       });
 
-      const chunks = chunkDocument(document as unknown as ExtractedDocument);
+      const chunks = chunkDocument(document);
       setChunks(chunks);
 
       setAnalysisProgress({
