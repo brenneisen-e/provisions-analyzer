@@ -29,3 +29,189 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   @apply bg-gray-400;
 }
+
+/* ===== ANIMATIONS ===== */
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse-soft {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.animate-slideInRight {
+  animation: slideInRight 0.3s ease-out;
+}
+
+.animate-slideInUp {
+  animation: slideInUp 0.3s ease-out;
+}
+
+.animate-pulse-soft {
+  animation: pulse-soft 2s ease-in-out infinite;
+}
+
+/* ===== PRESENTER MODE STYLES ===== */
+
+.presenter-active {
+  /* Slightly larger base for readability */
+}
+
+.presenter-active .calculation-formula {
+  font-size: 1.25em;
+  font-weight: 600;
+}
+
+.presenter-active .rule-quote {
+  font-size: 1.1em;
+  padding: 1.25rem;
+}
+
+.presenter-active .result-box {
+  font-size: 1.2em;
+  padding: 1.5rem;
+}
+
+/* Enhanced focus for presenter mode */
+.presenter-active td,
+.presenter-active .card {
+  transition: all 0.2s ease;
+}
+
+.presenter-active tr:hover td {
+  background-color: rgba(13, 148, 136, 0.05);
+}
+
+/* Spotlight cursor effect */
+.spotlight-cursor {
+  cursor: none;
+}
+
+/* ===== SPARTE COLORS ===== */
+
+.sparte-kv {
+  --sparte-color: #3b82f6;
+}
+
+.sparte-shuk {
+  --sparte-color: #22c55e;
+}
+
+.sparte-lv {
+  --sparte-color: #f59e0b;
+}
+
+.sparte-kfz {
+  --sparte-color: #a855f7;
+}
+
+/* ===== PROVISIONSART BADGES ===== */
+
+.badge-abschluss {
+  @apply bg-emerald-50 text-emerald-700 border-emerald-200;
+}
+
+.badge-bestand {
+  @apply bg-blue-50 text-blue-700 border-blue-200;
+}
+
+.badge-storno {
+  @apply bg-red-50 text-red-700 border-red-200;
+}
+
+.badge-dynamik {
+  @apply bg-amber-50 text-amber-700 border-amber-200;
+}
+
+/* ===== CALCULATION BREAKDOWN STYLES ===== */
+
+.calculation-step {
+  transition: all 0.3s ease-out;
+}
+
+.calculation-step-expanded {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.formula-box {
+  @apply bg-slate-50 border border-slate-200 rounded-lg p-4 font-mono;
+}
+
+.formula-variable {
+  @apply px-1 py-0.5 bg-teal-100 text-teal-800 rounded mx-0.5;
+}
+
+.rule-reference-box {
+  @apply bg-amber-50 border-l-4 border-amber-400 p-3;
+}
+
+/* ===== TIMELINE STYLES ===== */
+
+.timeline-line {
+  @apply absolute left-4 top-8 bottom-4 w-0.5 bg-gray-200;
+}
+
+.timeline-dot {
+  @apply absolute left-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium;
+  @apply bg-white border-2 border-gray-300 text-gray-600;
+  transition: all 0.2s ease;
+}
+
+.timeline-dot.active {
+  @apply bg-teal-600 border-teal-600 text-white;
+}
+
+/* ===== PRINT STYLES ===== */
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+
+  .presenter-active {
+    font-size: 100% !important;
+  }
+
+  body {
+    background: white;
+  }
+}

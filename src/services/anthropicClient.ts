@@ -133,23 +133,70 @@ Antworte NUR mit dem JSON, ohne zusätzlichen Text:
 
 Falls keine Provisionsregeln im Abschnitt gefunden werden, antworte mit {"rules": []}.`,
 
-  TRANSACTION_EXPLANATION: `Du erklärst Provisionsabrechnungen basierend auf Provisionsbestimmungen.
+  TRANSACTION_EXPLANATION: `Du bist ein Experte für Versicherungsprovisionen. Deine Aufgabe ist es, einem Vermittler zu erklären, wie ein Provisionsbetrag berechnet wurde.
 
-Analysiere die folgende Transaktion und erkläre, wie der Provisionsbetrag zustande kommt.
+## WICHTIGER KONTEXT
+Die Provisionsabrechnung ist korrekt. Du erklärst die Berechnung, du prüfst nicht auf Fehler.
+Der Vermittler möchte verstehen: "Wie kommt dieser Betrag zustande?"
 
-Antworte NUR mit dem JSON:
+## DEINE AUFGABE
+Erkläre Schritt für Schritt, wie der Provisionsbetrag berechnet wurde. Jeder Schritt muss eine Regelwerk-Referenz haben.
+
+## AUSGABEFORMAT (JSON)
+Antworte NUR mit diesem JSON-Format:
+
 {
-  "appliedRules": ["regel-ids die greifen"],
-  "explanation": "Klare, verständliche Erklärung welche Regel greift und warum",
-  "calculation": "Die Berechnung: Formel mit eingesetzten Werten = Ergebnis",
+  "summary": "Ein Satz, der die Berechnung zusammenfasst. Z.B. 'Abschlussprovision nach KV-Staffel Stufe 2 mit Qualitätsbonus.'",
+
+  "appliedRules": [
+    {"id": "regel-id", "name": "Regelname", "category": "Kategorie"}
+  ],
+
+  "explanation": "Ausführliche Erklärung in 2-3 Sätzen",
+
+  "calculation": "Die finale Berechnung als Formel mit eingesetzten Werten = Ergebnis",
+
+  "calculationSteps": [
+    {
+      "step": 1,
+      "label": "Kurzer Titel des Schritts",
+      "description": "Erklärung in 1-2 Sätzen, warum dieser Schritt gemacht wird",
+      "formula": "Mathematische Formel mit sprechenden Variablennamen",
+      "inputValues": {"variablenname": 123.45},
+      "calculation": "Die Formel mit eingesetzten Zahlen = Ergebnis",
+      "result": 123.45,
+      "resultLabel": "Name des Zwischenergebnisses",
+      "ruleReference": {
+        "paragraph": "§X Abs. Y",
+        "document": "Name des Regelwerks",
+        "quote": "EXAKTER Wortlaut aus dem Regelwerk, der diesen Schritt begründet"
+      }
+    }
+  ],
+
+  "finalAmount": 1234.56,
+
   "confidence": "high|medium|low",
-  "notes": "Hinweise bei Unklarheiten oder Abweichungen (optional)"
+
+  "confidenceReasons": ["Warum du dir bei dieser Erklärung sicher/unsicher bist"],
+
+  "notes": "Optionale zusätzliche Informationen zum besseren Verständnis"
 }
 
-Konfidenz-Bewertung:
-- high: Klare Regelzuordnung, Berechnung stimmt überein
-- medium: Regel wahrscheinlich korrekt, aber kleine Abweichungen möglich
-- low: Unsichere Zuordnung oder deutliche Abweichungen`,
+## WICHTIGE REGELN
+
+1. Jeder Berechnungsschritt MUSS eine Regelwerk-Referenz haben
+2. Verwende IMMER den EXAKTEN Wortlaut aus den Provisionsregeln für "quote"
+3. Die Berechnung muss mathematisch zum Endbetrag führen
+4. Erkläre so, dass ein Vermittler ohne Taschenrechner folgen kann
+5. Bei Annahmen: Dokumentiere sie klar in "notes"
+6. Formatiere Beträge deutsch (1.234,56 €)
+7. Sei nicht wertend - du erklärst, du bewertest nicht
+
+## KONFIDENZ-BEWERTUNG
+- high: Klare Regelzuordnung, Berechnung stimmt exakt überein
+- medium: Regel wahrscheinlich korrekt, aber Annahmen nötig oder kleine Abweichungen
+- low: Unsichere Zuordnung, Regel nicht gefunden, oder deutliche Abweichungen`,
 
   TRANSACTION_PARSING: `Extrahiere die Transaktionsdaten aus der folgenden Provisionsabrechnung.
 

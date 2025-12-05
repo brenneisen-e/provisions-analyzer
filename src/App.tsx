@@ -1,10 +1,11 @@
 import React, { useEffect } from 'react';
-import { FileText, BarChart3, Settings } from 'lucide-react';
+import { FileText, BarChart3, Settings, Sparkles } from 'lucide-react';
 import { ToastContainer } from './components/ui';
 import { SetupView, AnalyzeView } from './views';
 import { useAppStore } from './stores/appStore';
 import { useRulesStore } from './stores/rulesStore';
 import { initAnthropicClient } from './services/anthropicClient';
+import { PresenterOverlay } from './components/PresenterOverlay';
 
 function App() {
   const {
@@ -12,7 +13,8 @@ function App() {
     setCurrentView,
     apiConfig,
     notifications,
-    removeNotification
+    removeNotification,
+    demoMode
   } = useAppStore();
   const { rules } = useRulesStore();
 
@@ -24,25 +26,35 @@ function App() {
   }, [apiConfig.anthropicApiKey]);
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            {/* Logo */}
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-teal-600 rounded-lg">
-                <FileText className="w-5 h-5 text-white" />
+    <PresenterOverlay>
+      <div className="min-h-screen bg-gray-50">
+        {/* Header */}
+        <header className="bg-white border-b border-gray-200">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between h-16">
+              {/* Logo */}
+              <div className="flex items-center gap-3">
+                <div className={`p-2 rounded-lg ${demoMode ? 'bg-blue-600' : 'bg-teal-600'}`}>
+                  {demoMode ? (
+                    <Sparkles className="w-5 h-5 text-white" />
+                  ) : (
+                    <FileText className="w-5 h-5 text-white" />
+                  )}
+                </div>
+                <div>
+                  <h1 className="text-lg font-semibold text-gray-900">
+                    Provisions-Analyzer
+                    {demoMode && (
+                      <span className="ml-2 text-xs font-normal text-blue-600 bg-blue-100 px-2 py-0.5 rounded-full">
+                        Demo
+                      </span>
+                    )}
+                  </h1>
+                  <p className="text-xs text-gray-500">
+                    Provisionsabrechnungen automatisch erklärt
+                  </p>
+                </div>
               </div>
-              <div>
-                <h1 className="text-lg font-semibold text-gray-900">
-                  Provisions-Analyzer
-                </h1>
-                <p className="text-xs text-gray-500">
-                  Provisionsabrechnungen automatisch erklärt
-                </p>
-              </div>
-            </div>
 
             {/* Navigation */}
             <nav className="flex items-center gap-1">
@@ -81,12 +93,13 @@ function App() {
         </div>
       </footer>
 
-      {/* Toast Notifications */}
-      <ToastContainer
-        toasts={notifications}
-        onClose={removeNotification}
-      />
-    </div>
+        {/* Toast Notifications */}
+        <ToastContainer
+          toasts={notifications}
+          onClose={removeNotification}
+        />
+      </div>
+    </PresenterOverlay>
   );
 }
 
