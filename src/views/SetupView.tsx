@@ -11,6 +11,7 @@ import { extractRulesFromDocument } from '../services/ruleExtractor';
 import { generateSampleProvisionStatement, downloadBlob } from '../services/pdfGenerator';
 import { generateSampleProvisionsRules } from '../services/provisionsRulesGenerator';
 import { generateVergütungsnachweise } from '../services/verguetungsnachweiseGenerator';
+import { barmeniaProvisionRules } from '../data/barmeniaRules';
 
 export const SetupView: React.FC = () => {
   const { apiConfig, setApiKey, setCurrentView, addNotification } = useAppStore();
@@ -205,6 +206,22 @@ export const SetupView: React.FC = () => {
     }, 100);
   };
 
+  // Load predefined Barmenia rules
+  const handleLoadPredefinedRules = () => {
+    setRules(barmeniaProvisionRules);
+    setDocumentName('Barmenia/Gothaer Vertretervertrag (vordefiniert)');
+    setAnalysisProgress({
+      stage: 'complete',
+      current: barmeniaProvisionRules.length,
+      total: barmeniaProvisionRules.length,
+      message: `${barmeniaProvisionRules.length} vordefinierte Regeln geladen`
+    });
+    addNotification({
+      type: 'success',
+      message: `${barmeniaProvisionRules.length} Provisionsregeln aus Barmenia/Gothaer Vertrag geladen`
+    });
+  };
+
   // Clear stored rules
   const handleClearRules = () => {
     clearAll();
@@ -267,11 +284,39 @@ export const SetupView: React.FC = () => {
         </p>
       </Card>
 
+      {/* Quick Start - Vordefinierte Regeln */}
+      {rules.length === 0 && (
+        <Card>
+          <CardHeader
+            title="Schnellstart: Barmenia/Gothaer Vertrag"
+            description="Verwenden Sie die vordefinierten Provisionsregeln aus Ihrem Vertretervertrag"
+          />
+
+          <div className="p-4 bg-blue-50 rounded-lg border border-blue-200 mb-4">
+            <p className="text-sm text-blue-800 mb-3">
+              Die Provisionsregeln aus Ihrem Barmenia/Gothaer Vertretervertrag sind bereits im System hinterlegt.
+              Sie können direkt mit der Abrechnungsanalyse starten, ohne den Vertrag hochzuladen.
+            </p>
+            <Button
+              onClick={handleLoadPredefinedRules}
+              className="w-full"
+              leftIcon={<CheckCircle className="w-4 h-4" />}
+            >
+              Vordefinierte Regeln laden ({barmeniaProvisionRules.length} Regeln)
+            </Button>
+          </div>
+
+          <p className="text-xs text-gray-500 text-center">
+            Oder laden Sie unten einen anderen Vertrag hoch
+          </p>
+        </Card>
+      )}
+
       {/* Provisionsbestimmungen Upload */}
       <Card>
         <CardHeader
           title="Provisionsbestimmungen"
-          description="Laden Sie die PDF mit Ihren Provisionsbestimmungen hoch"
+          description={rules.length > 0 ? "Regeln wurden geladen" : "Oder laden Sie die PDF mit Ihren Provisionsbestimmungen hoch"}
           action={
             rules.length > 0 ? (
               <Button variant="ghost" size="sm" onClick={handleClearRules}>

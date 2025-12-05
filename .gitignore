@@ -22,3 +22,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Contract files
+Vertrag.pdf
+vertrag-text.txt
