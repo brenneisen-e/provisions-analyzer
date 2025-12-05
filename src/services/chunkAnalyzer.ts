@@ -11,145 +11,126 @@ interface ChunkingOptions {
 /**
  * Analysiert ein PDF-Dokument und teilt es in semantisch sinnvolle Chunks
  *
- * Standard: ~15.000 Zeichen pro Chunk (ca. 3-4 Seiten)
- * Fast Mode: ~25.000 Zeichen pro Chunk (ca. 6-8 Seiten)
+ * OPTIMIERT: Große Chunks für schnellere Verarbeitung
+ * - Standard: ~40.000 Zeichen pro Chunk (ca. 10-12 Seiten)
+ * - Bei 63 Seiten = ca. 5-8 Chunks statt 270!
  *
- * Bei 100 Seiten ergibt das ca. 25-35 Chunks statt 400!
+ * Kleine Paragraphen (§1, §2, etc.) werden NICHT einzeln gechunkt,
+ * sondern zusammengefasst bis die Chunk-Größe erreicht ist.
  */
 export function chunkDocument(
   document: ExtractedDocument,
   options: ChunkingOptions = {}
 ): DocumentChunk[] {
-  const isFastMode = options.fastMode ?? false;
   const {
-    maxChunkSize = isFastMode ? 25000 : 15000,  // Deutlich größere Chunks
-    overlapSize = isFastMode ? 100 : 300,        // Weniger Overlap
+    maxChunkSize = 40000,  // ~10-12 Seiten pro Chunk
+    overlapSize = 500,      // Etwas Kontext-Overlap
     preserveStructure = true
   } = options;
 
-  const chunks: DocumentChunk[] = [];
-
-  if (preserveStructure) {
-    // Structure-aware chunking
-    chunks.push(...structureAwareChunking(document, maxChunkSize, overlapSize));
-  } else {
-    // Simple sliding window chunking
-    chunks.push(...slidingWindowChunking(document, maxChunkSize, overlapSize));
+  // Für Provisionsbestimmungen: Einfaches Sliding-Window ist besser
+  // da wir ALLE Regeln erfassen müssen, nicht nur strukturelle Grenzen
+  if (!preserveStructure) {
+    return slidingWindowChunking(document, maxChunkSize, overlapSize);
   }
 
-  return chunks;
+  // Optimiertes Chunking: Nur an GROSSEN Abschnitten splitten
+  return optimizedChunking(document, maxChunkSize, overlapSize);
 }
 
 /**
- * Struktur-bewusstes Chunking - respektiert Kapitel/Paragraphen
+ * OPTIMIERTES Chunking - sammelt Content bis maxChunkSize erreicht ist
+ * Splittet nur an natürlichen Grenzen (Satzende, Absatz)
+ * KEINE separaten Chunks für jeden § Paragraphen!
  */
-function structureAwareChunking(
+function optimizedChunking(
   document: ExtractedDocument,
   maxChunkSize: number,
   overlapSize: number
 ): DocumentChunk[] {
   const chunks: DocumentChunk[] = [];
+  const fullText = document.fullText;
 
-  // Pattern für Sektionsüberschriften
-  const sectionPatterns = [
-    /^§\s*\d+/,
-    /^\d+\.\s+[A-ZÄÖÜ]/,
-    /^\d+\.\d+/,
-    /^(Artikel|Abschnitt|Kapitel|Teil)\s+\d+/i,
-    /^[IVXLCDM]+\.\s+/
-  ];
-
-  const isSectionStart = (line: string): boolean => {
-    return sectionPatterns.some(pattern => pattern.test(line.trim()));
-  };
-
-  let currentChunk: {
-    content: string[];
-    pageStart: number;
-    pageEnd: number;
-    title?: string;
-    type: DocumentChunk['type'];
-  } | null = null;
-
-  for (const page of document.pages) {
-    for (const line of page.lines) {
-      const trimmedLine = line.trim();
-      if (!trimmedLine) continue;
-
-      // Check if this line starts a new section
-      if (isSectionStart(trimmedLine)) {
-        // Save current chunk if it exists and has content
-        if (currentChunk && currentChunk.content.length > 0) {
-          const content = currentChunk.content.join('\n');
-          chunks.push({
-            id: generateSimpleId(),
-            pageStart: currentChunk.pageStart,
-            pageEnd: currentChunk.pageEnd,
-            title: currentChunk.title,
-            content,
-            type: currentChunk.type
-          });
-        }
-
-        // Start new chunk
-        currentChunk = {
-          content: [trimmedLine],
-          pageStart: page.pageNumber,
-          pageEnd: page.pageNumber,
-          title: trimmedLine.substring(0, 100),
-          type: detectChunkType(trimmedLine)
-        };
-      } else if (currentChunk) {
-        // Add to current chunk
-        currentChunk.content.push(trimmedLine);
-        currentChunk.pageEnd = page.pageNumber;
-
-        // Check if chunk is getting too large
-        const currentSize = currentChunk.content.join('\n').length;
-        if (currentSize > maxChunkSize) {
-          // Split chunk at a natural boundary if possible
-          const splitResult = splitChunkAtBoundary(currentChunk.content, maxChunkSize, overlapSize);
-
-          chunks.push({
-            id: generateSimpleId(),
-            pageStart: currentChunk.pageStart,
-            pageEnd: currentChunk.pageEnd,
-            title: currentChunk.title,
-            content: splitResult.first.join('\n'),
-            type: currentChunk.type
-          });
-
-          // Continue with remainder
-          currentChunk = {
-            content: splitResult.second,
-            pageStart: currentChunk.pageEnd,
-            pageEnd: currentChunk.pageEnd,
-            title: currentChunk.title ? `${currentChunk.title} (Fortsetzung)` : undefined,
-            type: currentChunk.type
-          };
-        }
-      } else {
-        // No current chunk - start one
-        currentChunk = {
-          content: [trimmedLine],
-          pageStart: page.pageNumber,
-          pageEnd: page.pageNumber,
-          type: 'paragraph'
-        };
-      }
-    }
+  // Wenn Dokument klein genug, nur 1 Chunk
+  if (fullText.length <= maxChunkSize) {
+    return [{
+      id: generateSimpleId(),
+      pageStart: 1,
+      pageEnd: document.pages.length,
+      content: fullText,
+      type: 'paragraph'
+    }];
   }
 
-  // Don't forget the last chunk
-  if (currentChunk && currentChunk.content.length > 0) {
-    chunks.push({
-      id: generateSimpleId(),
-      pageStart: currentChunk.pageStart,
-      pageEnd: currentChunk.pageEnd,
-      title: currentChunk.title,
-      content: currentChunk.content.join('\n'),
-      type: currentChunk.type
-    });
+  let position = 0;
+  let chunkIndex = 0;
+
+  while (position < fullText.length) {
+    // Ziel-Ende berechnen
+    let end = Math.min(position + maxChunkSize, fullText.length);
+
+    // Wenn nicht am Ende, suche guten Splitpunkt
+    if (end < fullText.length) {
+      // Suche rückwärts nach gutem Splitpunkt (max 2000 Zeichen zurück)
+      const searchStart = Math.max(end - 2000, position + maxChunkSize / 2);
+      let bestSplit = end;
+
+      // Priorität 1: Doppelter Zeilenumbruch (Absatzende)
+      const doubleNewline = fullText.lastIndexOf('\n\n', end);
+      if (doubleNewline > searchStart) {
+        bestSplit = doubleNewline + 2;
+      } else {
+        // Priorität 2: Satzende mit Zeilenumbruch
+        const sentenceEnd = fullText.substring(searchStart, end).search(/[.!?]\s*\n/);
+        if (sentenceEnd > 0) {
+          bestSplit = searchStart + sentenceEnd + fullText.substring(searchStart + sentenceEnd).match(/[.!?]\s*\n/)![0].length;
+        } else {
+          // Priorität 3: Einfacher Zeilenumbruch
+          const newline = fullText.lastIndexOf('\n', end);
+          if (newline > searchStart) {
+            bestSplit = newline + 1;
+          }
+        }
+      }
+      end = bestSplit;
+    }
+
+    // Seitennummern für diesen Chunk finden
+    let charCount = 0;
+    let startPage = 1;
+    let endPage = document.pages.length;
+
+    for (let i = 0; i < document.pages.length; i++) {
+      const pageTextLength = document.pages[i].text.length + 2;
+      if (charCount <= position && position < charCount + pageTextLength) {
+        startPage = document.pages[i].pageNumber;
+      }
+      if (charCount <= end && end <= charCount + pageTextLength) {
+        endPage = document.pages[i].pageNumber;
+        break;
+      }
+      charCount += pageTextLength;
+    }
+
+    const content = fullText.substring(position, end).trim();
+
+    if (content.length > 0) {
+      chunks.push({
+        id: generateSimpleId(),
+        pageStart: startPage,
+        pageEnd: endPage,
+        content,
+        title: `Teil ${chunkIndex + 1} (Seiten ${startPage}-${endPage})`,
+        type: 'paragraph'
+      });
+      chunkIndex++;
+    }
+
+    // Nächste Position mit Overlap
+    position = Math.max(position + 1, end - overlapSize);
+
+    // Sicherheit: Vermeide Endlosschleife
+    if (position >= fullText.length - 100) break;
   }
 
   return chunks;
@@ -202,58 +183,6 @@ function slidingWindowChunking(
   }
 
   return chunks;
-}
-
-/**
- * Erkennt den Typ eines Chunks anhand der Überschrift
- */
-function detectChunkType(title: string): DocumentChunk['type'] {
-  const lowerTitle = title.toLowerCase();
-
-  if (/^§/.test(title)) return 'section';
-  if (/^(kapitel|teil)/i.test(title)) return 'chapter';
-  if (/tabelle|übersicht|staffel/i.test(lowerTitle)) return 'table';
-
-  return 'paragraph';
-}
-
-/**
- * Teilt einen zu großen Chunk an einer natürlichen Grenze
- */
-function splitChunkAtBoundary(
-  lines: string[],
-  maxSize: number,
-  overlapSize: number
-): { first: string[]; second: string[] } {
-  let currentSize = 0;
-  let splitIndex = 0;
-
-  // Find split point
-  for (let i = 0; i < lines.length; i++) {
-    currentSize += lines[i].length + 1; // +1 for newline
-
-    if (currentSize > maxSize * 0.8) {
-      // Look for a good split point (empty line, sentence end)
-      for (let j = i; j >= Math.max(0, i - 10); j--) {
-        if (lines[j].trim() === '' || /[.!?]$/.test(lines[j])) {
-          splitIndex = j + 1;
-          break;
-        }
-      }
-      if (splitIndex === 0) splitIndex = i;
-      break;
-    }
-  }
-
-  if (splitIndex === 0) splitIndex = Math.floor(lines.length / 2);
-
-  // Calculate overlap start
-  const overlapLines = Math.max(0, splitIndex - Math.ceil(overlapSize / 50));
-
-  return {
-    first: lines.slice(0, splitIndex),
-    second: lines.slice(overlapLines)
-  };
 }
 
 /**
