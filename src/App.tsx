@@ -1,7 +1,8 @@
 import React, { useEffect } from 'react';
-import { FileText, BarChart3, Settings, Sparkles } from 'lucide-react';
+import { FileText, BarChart3, Settings, Sparkles, Layers } from 'lucide-react';
 import { ToastContainer } from './components/ui';
 import { SetupView, AnalyzeView } from './views';
+import { ArchitectureView } from './views/ArchitectureView';
 import { useAppStore } from './stores/appStore';
 import { useRulesStore } from './stores/rulesStore';
 import { initAnthropicClient } from './services/anthropicClient';
@@ -72,6 +73,12 @@ function App() {
                 disabled={rules.length === 0}
                 badge={rules.length > 0 ? `${rules.length} Regeln` : undefined}
               />
+              <NavButton
+                icon={<Layers className="w-4 h-4" />}
+                label="Architektur"
+                isActive={currentView === 'architecture'}
+                onClick={() => setCurrentView('architecture')}
+              />
             </nav>
           </div>
         </div>
@@ -81,6 +88,7 @@ function App() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {currentView === 'setup' && <SetupView />}
         {currentView === 'analyze' && <AnalyzeView />}
+        {currentView === 'architecture' && <ArchitectureView />}
       </main>
 
       {/* Footer */}
