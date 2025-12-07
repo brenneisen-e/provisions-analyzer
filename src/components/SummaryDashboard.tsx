@@ -1,7 +1,27 @@
 import React, { useMemo } from 'react';
-import { TrendingUp, CheckCircle, AlertCircle, HelpCircle } from 'lucide-react';
+import { TrendingUp, CheckCircle, AlertCircle, HelpCircle, HeartPulse, Home, Car, FileText } from 'lucide-react';
 import type { Transaction, TransactionExplanation } from '../types';
-import { SPARTEN_ICONS, PROVISIONSART_COLORS } from '../data/demoData';
+import { PROVISIONSART_COLORS } from '../data/demoData';
+
+// Sparten Icon Component - einfarbige Lucide Icons
+const SparteIcon: React.FC<{ sparte?: string; className?: string }> = ({ sparte, className = 'w-5 h-5' }) => {
+  const iconClass = `${className} text-gray-500`;
+  switch (sparte?.toUpperCase()) {
+    case 'KV':
+    case 'KRANKEN':
+      return <HeartPulse className={iconClass} />;
+    case 'SHUK':
+    case 'SACH':
+      return <Home className={iconClass} />;
+    case 'LV':
+    case 'LEBEN':
+      return <TrendingUp className={iconClass} />;
+    case 'KFZ':
+      return <Car className={iconClass} />;
+    default:
+      return <FileText className={iconClass} />;
+  }
+};
 
 interface SummaryDashboardProps {
   transactions: Transaction[];
@@ -149,7 +169,6 @@ export const SummaryDashboard: React.FC<SummaryDashboardProps> = ({
         <p className="text-xs text-gray-500 uppercase tracking-wide font-medium mb-3">Nach Sparte</p>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {sortedSparten.map(([sparte, data]) => {
-            const icon = SPARTEN_ICONS[sparte] || '📄';
             const percentage = stats.totalProvision > 0
               ? Math.round((data.sum / stats.totalProvision) * 100)
               : 0;
@@ -160,7 +179,7 @@ export const SummaryDashboard: React.FC<SummaryDashboardProps> = ({
                 className="bg-white rounded-lg border border-gray-200 p-3 hover:shadow-md transition-shadow"
               >
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="text-xl">{icon}</span>
+                  <SparteIcon sparte={sparte} className="w-5 h-5" />
                   <span className="text-sm font-medium text-gray-700">{sparte}</span>
                 </div>
                 <p className={`text-lg font-bold ${data.sum < 0 ? 'text-red-600' : 'text-gray-900'}`}>

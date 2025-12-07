@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { ArrowLeft, Search, FileDown, ChevronDown, ChevronUp, Flag, Calculator, AlertTriangle, Sparkles } from 'lucide-react';
+import { ArrowLeft, Search, FileDown, ChevronDown, ChevronUp, Flag, Calculator, AlertTriangle, Sparkles, HeartPulse, Home, TrendingUp, Car, FileText } from 'lucide-react';
 import { Button, Input, Card, CardHeader, ProgressBar, Select, ConfidenceBadge } from '../components/ui';
 import { FileUpload } from '../components/FileUpload';
 import { useAppStore } from '../stores/appStore';
@@ -12,8 +12,28 @@ import { ExportModal } from './ExportModal';
 import { CalculationBreakdown } from '../components/CalculationBreakdown';
 import { RuleReferencePanel, useRuleReferencePanel } from '../components/RuleReferencePanel';
 import { SummaryDashboard } from '../components/SummaryDashboard';
-import { SPARTEN_ICONS, PROVISIONSART_COLORS } from '../data/demoData';
+import { PROVISIONSART_COLORS } from '../data/demoData';
 import type { Transaction, RuleReference } from '../types';
+
+// Sparten Icon Component - einfarbige Lucide Icons
+const SparteIcon: React.FC<{ sparte?: string; className?: string }> = ({ sparte, className = 'w-4 h-4' }) => {
+  const iconClass = `${className} text-gray-500`;
+  switch (sparte?.toUpperCase()) {
+    case 'KV':
+    case 'KRANKEN':
+      return <HeartPulse className={iconClass} />;
+    case 'SHUK':
+    case 'SACH':
+      return <Home className={iconClass} />;
+    case 'LV':
+    case 'LEBEN':
+      return <TrendingUp className={iconClass} />;
+    case 'KFZ':
+      return <Car className={iconClass} />;
+    default:
+      return <FileText className={iconClass} />;
+  }
+};
 
 export const AnalyzeView: React.FC = () => {
   const { setCurrentView, addNotification, demoMode, presenterMode } = useAppStore();
@@ -419,7 +439,6 @@ const TransactionRow: React.FC<TransactionRowProps> = ({
 }) => {
   const isNegative = transaction.provisionsbetrag < 0;
   const isStorno = transaction.provisionsart === 'Storno' || isNegative;
-  const sparteIcon = SPARTEN_ICONS[transaction.sparte || ''] || '';
   const artColors = PROVISIONSART_COLORS[transaction.provisionsart] || PROVISIONSART_COLORS['Sonstig'];
 
   return (
@@ -440,7 +459,7 @@ const TransactionRow: React.FC<TransactionRowProps> = ({
         </td>
         <td className="px-4 py-3">
           <div className="flex items-center gap-2">
-            {sparteIcon && <span className="text-lg">{sparteIcon}</span>}
+            <SparteIcon sparte={transaction.sparte} className="w-4 h-4" />
             <div>
               <div className="text-sm font-medium text-gray-900">
                 {transaction.kundenname || transaction.vertragsnummer}

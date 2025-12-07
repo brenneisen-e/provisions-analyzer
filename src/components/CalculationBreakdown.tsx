@@ -1,8 +1,28 @@
 import React, { useState } from 'react';
-import { ChevronDown, ChevronRight, BookOpen, Check, Calculator, Info } from 'lucide-react';
+import { ChevronDown, ChevronRight, BookOpen, Check, Calculator, Info, HeartPulse, Home, TrendingUp, Car, FileText } from 'lucide-react';
 import type { Transaction, TransactionExplanation, CalculationStep, RuleReference, AppliedRuleInfo } from '../types';
 import { ConfidenceBadge } from './ui/Badge';
-import { SPARTEN_ICONS, PROVISIONSART_COLORS } from '../data/demoData';
+import { PROVISIONSART_COLORS } from '../data/demoData';
+
+// Sparten Icon Component - einfarbige Lucide Icons
+const SparteIcon: React.FC<{ sparte?: string; className?: string }> = ({ sparte, className = 'w-4 h-4' }) => {
+  const iconClass = `${className} text-gray-500`;
+  switch (sparte?.toUpperCase()) {
+    case 'KV':
+    case 'KRANKEN':
+      return <HeartPulse className={iconClass} />;
+    case 'SHUK':
+    case 'SACH':
+      return <Home className={iconClass} />;
+    case 'LV':
+    case 'LEBEN':
+      return <TrendingUp className={iconClass} />;
+    case 'KFZ':
+      return <Car className={iconClass} />;
+    default:
+      return <FileText className={iconClass} />;
+  }
+};
 
 interface CalculationBreakdownProps {
   transaction: Transaction;
@@ -41,7 +61,6 @@ export const CalculationBreakdown: React.FC<CalculationBreakdownProps> = ({
     }).format(amount);
   };
 
-  const sparteIcon = SPARTEN_ICONS[transaction.sparte || ''] || '📄';
   const artColors = PROVISIONSART_COLORS[transaction.provisionsart] || PROVISIONSART_COLORS['Sonstig'];
 
   // Compact preview mode
@@ -80,8 +99,9 @@ export const CalculationBreakdown: React.FC<CalculationBreakdownProps> = ({
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-3">
           <div>
             <p className="text-xs text-gray-500 uppercase tracking-wide">Transaktion</p>
-            <p className="text-sm font-medium text-gray-900 mt-0.5">
-              {sparteIcon} {transaction.kundenname || 'Unbekannt'} | {transaction.vertragsnummer}
+            <p className="text-sm font-medium text-gray-900 mt-0.5 flex items-center gap-1.5">
+              <SparteIcon sparte={transaction.sparte} className="w-4 h-4" />
+              <span>{transaction.kundenname || 'Unbekannt'} | {transaction.vertragsnummer}</span>
             </p>
           </div>
           <div>

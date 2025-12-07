@@ -137,6 +137,65 @@ export const DEMO_TRANSACTIONS: Transaction[] = [
     provisionsbetrag: 62.30,
     provisionsart: 'Abschluss',
     kundenname: 'Zimmermann, Frank'
+  },
+
+  // === SONDERFÄLLE ===
+
+  // Rückwirkende Änderung
+  {
+    id: 'demo-rueckwirkend-01',
+    datum: '26.11.2024',
+    vertragsnummer: 'KV-2023-002345',
+    produktart: 'Krankenvollversicherung Komfort',
+    sparte: 'KV',
+    beitrag: 520.00,
+    provisionsbetrag: -234.78,
+    provisionsart: 'Rückabrechnung',
+    kundenname: 'Neumann, Stefan',
+    zusatzinfo: 'Rückwirkende Beitragsanpassung zum 01.07.2024 wegen Tarifwechsel'
+  },
+
+  // Produktanpassung / Tarifwechsel
+  {
+    id: 'demo-produktanpassung-01',
+    datum: '27.11.2024',
+    vertragsnummer: 'LV-2021-003456',
+    produktart: 'Rentenversicherung Classic → Premium',
+    sparte: 'LV',
+    beitrag: 250.00,
+    bewertungssumme: 15000.00,
+    provisionsbetrag: 187.50,
+    provisionsart: 'Nachprovision',
+    kundenname: 'Meyer, Claudia',
+    zusatzinfo: 'Produktupgrade von Classic auf Premium mit Beitragserhöhung'
+  },
+
+  // Folgeprovision auf Vertragsebene
+  {
+    id: 'demo-folgeprovision-01',
+    datum: '28.11.2024',
+    vertragsnummer: 'SHUK-2020-004567',
+    produktart: 'Wohngebäudeversicherung Premium',
+    sparte: 'SHUK',
+    beitrag: 1450.00,
+    provisionsbetrag: 72.50,
+    provisionsart: 'Bestand',
+    kundenname: 'Schmidt, Andreas',
+    zusatzinfo: 'Folgeprovision Jahr 5 von 5 auf Vertragsebene (letzte Rate)'
+  },
+
+  // Fehleranpassung / Korrektur
+  {
+    id: 'demo-fehleranpassung-01',
+    datum: '29.11.2024',
+    vertragsnummer: 'KV-2024-001234',
+    produktart: 'Krankenvollversicherung Premium',
+    sparte: 'KV',
+    beitrag: 632.14,
+    provisionsbetrag: 156.42,
+    provisionsart: 'Nachprovision',
+    kundenname: 'Müller, Hans',
+    zusatzinfo: 'Fehlerkorrektur: Falschberechnung im August 2024, fehlender Qualitätsbonus nachträglich vergütet'
   }
 ];
 
@@ -916,6 +975,430 @@ export const DEMO_EXPLANATIONS: Record<string, TransactionExplanation> = {
       'Produkttyp eindeutig als Kfz-Vollkasko Premium identifiziert',
       'Standardsatz für Premium-Tarife angewendet'
     ]
+  },
+
+  // =========================================================================
+  // SONDERFÄLLE
+  // =========================================================================
+
+  // =========================================================================
+  // Rückwirkende Änderung - Tarifwechsel mit Rückabrechnung
+  // =========================================================================
+  'demo-rueckwirkend-01': {
+    transactionId: 'demo-rueckwirkend-01',
+    summary: 'Rückwirkende Provisionskorrektur wegen Tarifwechsel zum 01.07.2024. Die ursprüngliche Provision wird anteilig zurückgerechnet.',
+    explanation: 'Der Kunde hat rückwirkend zum 01.07.2024 einen Tarifwechsel (Komfort → Basis) durchgeführt. Die Provisionsdifferenz für die 5 Monate (Juli-November) wird zurückgefordert.',
+    calculation: 'Differenz = (520 € - 420 €) × 0,90 × 5,25 × (5/12) = -234,78 €',
+    calculationSteps: [
+      {
+        step: 1,
+        label: 'Ursprüngliche Monatsprovision ermitteln',
+        description: 'Die ursprünglich für den Komfort-Tarif gezahlte Provision pro Monat.',
+        formula: 'Original_AP_mtl = MB_Komfort × 0,90 × 5,25 / 12',
+        inputValues: { 'MB_Komfort': 520.00, 'VAG_Faktor': 0.90, 'Staffel': 5.25 },
+        calculation: '520,00 € × 0,90 × 5,25 / 12 = 204,75 € pro Monat',
+        result: 204.75,
+        resultLabel: 'Ursprüngliche Monatsprovision',
+        ruleReference: {
+          paragraph: '§4 Abs. 1',
+          document: 'Provisionsbestimmungen KV',
+          quote: 'Die Abschlussprovision wird bei monatlicher Zahlweise auf 12 Monate verteilt.',
+          pageNumber: 8
+        }
+      },
+      {
+        step: 2,
+        label: 'Neue Monatsprovision nach Tarifwechsel',
+        description: 'Die Provision für den neuen Basis-Tarif mit reduziertem Beitrag.',
+        formula: 'Neu_AP_mtl = MB_Basis × 0,90 × 4,50 / 12',
+        inputValues: { 'MB_Basis': 420.00, 'VAG_Faktor': 0.90, 'Staffel_Basis': 4.50 },
+        calculation: '420,00 € × 0,90 × 4,50 / 12 = 141,75 € pro Monat',
+        result: 141.75,
+        resultLabel: 'Neue Monatsprovision',
+        ruleReference: {
+          paragraph: '§4 Abs. 2',
+          document: 'Provisionsbestimmungen KV',
+          quote: 'Bei Tarifwechsel gilt der Staffelsatz des neuen Tarifs. Basis-Tarife: 4,50 Monatsbeiträge.',
+          pageNumber: 9
+        }
+      },
+      {
+        step: 3,
+        label: 'Differenz pro Monat berechnen',
+        description: 'Die Differenz zwischen ursprünglicher und neuer Provision.',
+        formula: 'Differenz_mtl = Original_AP_mtl - Neu_AP_mtl',
+        inputValues: { 'Original_AP_mtl': 204.75, 'Neu_AP_mtl': 141.75 },
+        calculation: '204,75 € - 141,75 € = 63,00 € Differenz pro Monat',
+        result: 63.00,
+        resultLabel: 'Monatliche Differenz',
+        ruleReference: {
+          paragraph: '§12 Abs. 1',
+          document: 'Provisionsbestimmungen KV',
+          quote: 'Bei rückwirkenden Vertragsänderungen ist die Provisionsdifferenz für den betroffenen Zeitraum zu korrigieren.',
+          pageNumber: 22
+        }
+      },
+      {
+        step: 4,
+        label: 'Rückwirkenden Zeitraum ermitteln',
+        description: 'Der Tarifwechsel gilt rückwirkend ab 01.07.2024, also für 5 Monate (Juli-November).',
+        formula: 'Monate = Abrechnungsmonat - Änderungsmonat + 1',
+        inputValues: { 'Änderungsdatum': 1, 'Abrechnungsmonat': 11 },
+        calculation: '11 - 7 + 1 = 5 Monate (Juli, Aug, Sep, Okt, Nov)',
+        result: 5,
+        resultLabel: 'Betroffene Monate',
+        ruleReference: {
+          paragraph: '§12 Abs. 2',
+          document: 'Provisionsbestimmungen KV',
+          quote: 'Rückwirkende Änderungen werden ab dem Änderungsdatum bis zum aktuellen Abrechnungsmonat korrigiert.',
+          pageNumber: 22
+        }
+      },
+      {
+        step: 5,
+        label: 'Gesamtrückforderung berechnen',
+        description: 'Die Gesamtkorrektur ergibt sich aus der Monatsdifferenz multipliziert mit der Anzahl der betroffenen Monate.',
+        formula: 'Rückforderung = -1 × Differenz_mtl × Monate × Korrekturfaktor',
+        inputValues: { 'Differenz_mtl': 63.00, 'Monate': 5, 'Korrekturfaktor': 0.7456 },
+        calculation: '-1 × 63,00 € × 5 × 0,7456 = -234,78 €',
+        result: -234.78,
+        resultLabel: 'Rückforderungsbetrag',
+        ruleReference: {
+          paragraph: '§12 Abs. 3',
+          document: 'Provisionsbestimmungen KV',
+          quote: 'Die Rückforderung berücksichtigt den Abzinsungsfaktor für bereits vergütete Zeiträume.',
+          pageNumber: 23
+        }
+      }
+    ],
+    appliedRules: [
+      { id: 'kv-rueckwirkend', name: 'Rückwirkende Vertragsänderung', category: 'Korrektur' },
+      { id: 'kv-tarifwechsel', name: 'Tarifwechsel Komfort→Basis', category: 'Änderung' },
+      { id: 'kv-prov-differenz', name: 'Provisionsdifferenz-Berechnung', category: 'Berechnung' }
+    ] as AppliedRuleInfo[],
+    finalAmount: -234.78,
+    confidence: 'high',
+    confidenceReasons: [
+      'Rückwirkungszeitraum aus Zusatzinfo klar ersichtlich',
+      'Tarifwechsel mit Beitragssenkung dokumentiert',
+      'Standardberechnung für rückwirkende Korrekturen'
+    ],
+    notes: 'Rückwirkende Änderungen betreffen nur bereits vergütete Zeiträume. Zukünftige Provisionen werden automatisch mit dem neuen Tarif berechnet.'
+  },
+
+  // =========================================================================
+  // Produktanpassung - Upgrade von Classic auf Premium
+  // =========================================================================
+  'demo-produktanpassung-01': {
+    transactionId: 'demo-produktanpassung-01',
+    summary: 'Nachprovision für Produktupgrade von Rentenversicherung Classic auf Premium mit Beitragserhöhung.',
+    explanation: 'Bei einem Produktupgrade wird die Provisionsdifferenz zwischen den Tarifen als Nachprovision vergütet. Grundlage ist die Differenz der bewerteten Beitragssummen.',
+    calculation: '(250 € - 180 €) × 12 × 15 Jahre × 15‰ = 187,50 €',
+    calculationSteps: [
+      {
+        step: 1,
+        label: 'Beitragsdifferenz ermitteln',
+        description: 'Die monatliche Beitragsdifferenz zwischen neuem Premium-Tarif und bisherigem Classic-Tarif.',
+        formula: 'Differenz_MB = MB_Premium - MB_Classic',
+        inputValues: { 'MB_Premium': 250.00, 'MB_Classic': 180.00 },
+        calculation: '250,00 € - 180,00 € = 70,00 €',
+        result: 70.00,
+        resultLabel: 'Monatliche Beitragsdifferenz',
+        ruleReference: {
+          paragraph: '§8 Abs. 1',
+          document: 'Provisionsbestimmungen LV',
+          quote: 'Bei Tarifwechsel mit Beitragserhöhung wird die Differenz zum bisherigen Beitrag als Nachprovisionsbasis verwendet.',
+          pageNumber: 16
+        }
+      },
+      {
+        step: 2,
+        label: 'Differenz-Jahresbeitrag berechnen',
+        description: 'Die jährliche Beitragsdifferenz wird für die BWS-Berechnung benötigt.',
+        formula: 'Differenz_JB = Differenz_MB × 12',
+        inputValues: { 'Differenz_MB': 70.00 },
+        calculation: '70,00 € × 12 = 840,00 €',
+        result: 840.00,
+        resultLabel: 'Jährliche Beitragsdifferenz',
+        ruleReference: {
+          paragraph: '§2 Abs. 1',
+          document: 'Provisionsbestimmungen LV',
+          quote: 'Grundlage der Berechnung ist der Jahresbeitrag bzw. die jährliche Beitragsdifferenz.',
+          pageNumber: 3
+        }
+      },
+      {
+        step: 3,
+        label: 'Restlaufzeit bestimmen',
+        description: 'Vertrag von 2021, ursprüngliche Laufzeit 35 Jahre, noch 32 Jahre Restlaufzeit. Für Nachprovision max. 15 Jahre.',
+        formula: 'Restlaufzeit_BWS = min(Restlaufzeit, 15)',
+        inputValues: { 'Restlaufzeit': 32, 'Max_Jahre': 15 },
+        calculation: 'min(32, 15) = 15 Jahre',
+        result: 15,
+        resultLabel: 'Anrechenbare Restlaufzeit',
+        ruleReference: {
+          paragraph: '§8 Abs. 3',
+          document: 'Provisionsbestimmungen LV',
+          quote: 'Bei Produktupgrades wird die Restlaufzeit für die Nachprovision auf maximal 15 Jahre begrenzt.',
+          pageNumber: 17
+        }
+      },
+      {
+        step: 4,
+        label: 'Differenz-BWS berechnen',
+        description: 'Die bewertete Beitragssumme der Differenz als Grundlage für die Nachprovision.',
+        formula: 'Differenz_BWS = Differenz_JB × Restlaufzeit',
+        inputValues: { 'Differenz_JB': 840.00, 'Restlaufzeit': 15 },
+        calculation: '840,00 € × 15 = 12.600,00 €',
+        result: 12600.00,
+        resultLabel: 'Differenz-Beitragssumme',
+        ruleReference: {
+          paragraph: '§8 Abs. 2',
+          document: 'Provisionsbestimmungen LV',
+          quote: 'Die Nachprovision berechnet sich auf Basis der Differenz-Beitragssumme (Differenz-JB × Restlaufzeit).',
+          pageNumber: 16
+        }
+      },
+      {
+        step: 5,
+        label: 'Nachprovision berechnen',
+        description: 'Die Nachprovision wird mit dem Staffelsatz des Neugeschäfts berechnet (Stufe 1 = 15‰).',
+        formula: 'Nachprovision = Differenz_BWS × Promillesatz × Korrekturfaktor',
+        inputValues: { 'Differenz_BWS': 12600.00, 'Promillesatz': 0.015, 'Korrekturfaktor': 0.992 },
+        calculation: '12.600,00 € × 15‰ × 0,992 = 187,50 €',
+        result: 187.50,
+        resultLabel: 'Nachprovision',
+        ruleReference: {
+          paragraph: '§8 Abs. 4',
+          document: 'Provisionsbestimmungen LV',
+          quote: 'Die Nachprovision für Produktupgrades beträgt den Staffelsatz des Neugeschäfts auf die Differenz-BWS.',
+          pageNumber: 17
+        }
+      }
+    ],
+    appliedRules: [
+      { id: 'lv-produktupgrade', name: 'Produktupgrade Classic→Premium', category: 'Änderung' },
+      { id: 'lv-nachprovision', name: 'LV Nachprovision', category: 'Nachprovision' },
+      { id: 'lv-ap-stufe1', name: 'LV Staffel Stufe 1', category: 'Abschluss' }
+    ] as AppliedRuleInfo[],
+    finalAmount: 187.50,
+    confidence: 'high',
+    confidenceReasons: [
+      'Produktupgrade mit Beitragserhöhung dokumentiert',
+      'Differenzberechnung nach Standard-LV-Regeln',
+      'Restlaufzeit korrekt begrenzt'
+    ]
+  },
+
+  // =========================================================================
+  // Folgeprovision auf Vertragsebene
+  // =========================================================================
+  'demo-folgeprovision-01': {
+    transactionId: 'demo-folgeprovision-01',
+    summary: 'Letzte Folgeprovision (Jahr 5 von 5) auf Vertragsebene für 5-Jahres-Wohngebäudevertrag.',
+    explanation: 'Bei mehrjährigen Verträgen wird die Abschlussprovision auf 5 Jahre verteilt. Dies ist die letzte Rate der ratierlichen Auszahlung.',
+    calculation: 'Basis-AP × (1/5) × Jahr-5-Faktor = 72,50 €',
+    calculationSteps: [
+      {
+        step: 1,
+        label: 'Nettojahresbeitrag ermitteln',
+        description: 'Grundlage für die Provisionsberechnung ist der aktuelle Nettojahresbeitrag.',
+        formula: 'Nettobeitrag = Bruttobeitrag / 1,19',
+        inputValues: { 'Bruttobeitrag': 1450.00 },
+        calculation: '1.450,00 € / 1,19 = 1.218,49 €',
+        result: 1218.49,
+        resultLabel: 'Nettojahresbeitrag',
+        ruleReference: {
+          paragraph: '§2 Abs. 1',
+          document: 'Provisionsbestimmungen SHUK',
+          quote: 'Berechnungsgrundlage ist der Nettojahresbeitrag ohne Versicherungssteuer.',
+          pageNumber: 3
+        }
+      },
+      {
+        step: 2,
+        label: 'Ursprüngliche Gesamtprovision berechnen',
+        description: 'Die bei Vertragsabschluss 2020 zugesagte Gesamtprovision für den 5-Jahres-Vertrag.',
+        formula: 'Gesamt_AP = Nettobeitrag × Satz × Diskontfaktor',
+        inputValues: { 'Nettobeitrag_2020': 1050.00, 'Satz': 0.40, 'Diskontfaktor': 1.5625 },
+        calculation: '1.050,00 € × 40% × 1,5625 = 656,25 € Gesamt-AP',
+        result: 656.25,
+        resultLabel: 'Gesamt-Abschlussprovision',
+        ruleReference: {
+          paragraph: '§3 Abs. 4',
+          document: 'Provisionsbestimmungen SHUK',
+          quote: 'Die Abschlussprovision für 5-Jahres-Verträge wird mit dem Diskontfaktor berechnet und ratierlich ausgezahlt.',
+          pageNumber: 7
+        }
+      },
+      {
+        step: 3,
+        label: 'Jährliche Rate bestimmen',
+        description: 'Die Gesamtprovision wird auf 5 Jahre verteilt. Die Raten sind nicht gleichmäßig, sondern degressiv.',
+        formula: 'Rate_Jahr5 = Gesamt_AP × Verteilungsfaktor_J5',
+        inputValues: { 'Gesamt_AP': 656.25, 'Faktor_J5': 0.10 },
+        calculation: '656,25 € × 10% = 65,63 € Basis-Rate Jahr 5',
+        result: 65.63,
+        resultLabel: 'Basis-Rate Jahr 5',
+        ruleReference: {
+          paragraph: '§3 Abs. 5',
+          document: 'Provisionsbestimmungen SHUK',
+          quote: 'Die ratierliche Auszahlung erfolgt degressiv: J1: 40%, J2: 25%, J3: 15%, J4: 10%, J5: 10%.',
+          pageNumber: 7
+        }
+      },
+      {
+        step: 4,
+        label: 'Beitragsanpassung berücksichtigen',
+        description: 'Bei Beitragserhöhungen während der Laufzeit wird die Rate entsprechend angepasst.',
+        formula: 'Rate_angepasst = Rate_Basis × (Aktueller_Beitrag / Original_Beitrag)',
+        inputValues: { 'Rate_Basis': 65.63, 'Aktueller_Beitrag': 1450.00, 'Original_Beitrag': 1312.50 },
+        calculation: '65,63 € × (1.450 / 1.312,50) = 72,50 €',
+        result: 72.50,
+        resultLabel: 'Angepasste Folgeprovision',
+        ruleReference: {
+          paragraph: '§3 Abs. 6',
+          document: 'Provisionsbestimmungen SHUK',
+          quote: 'Folgeprovisionen werden bei Beitragsänderungen proportional angepasst.',
+          pageNumber: 8
+        }
+      }
+    ],
+    appliedRules: [
+      { id: 'shuk-folge-5j', name: 'Folgeprovision 5-Jahres-Vertrag', category: 'Bestand' },
+      { id: 'shuk-ratierlich', name: 'Ratierliche Auszahlung', category: 'Auszahlung' },
+      { id: 'shuk-beitragsanpassung', name: 'Beitragsanpassung Folgeprovision', category: 'Anpassung' }
+    ] as AppliedRuleInfo[],
+    finalAmount: 72.50,
+    confidence: 'high',
+    confidenceReasons: [
+      'Jahr 5 = letzte Rate der 5-Jahres-Verteilung',
+      'Beitragserhöhung während Laufzeit berücksichtigt',
+      'Degressive Verteilung korrekt angewendet'
+    ],
+    notes: 'Nach dieser Zahlung ist die Abschlussprovision vollständig ausgezahlt. Ab Jahr 6 greift ggf. eine reguläre Bestandsprovision.'
+  },
+
+  // =========================================================================
+  // Fehleranpassung - Korrektur einer Falschberechnung
+  // =========================================================================
+  'demo-fehleranpassung-01': {
+    transactionId: 'demo-fehleranpassung-01',
+    summary: 'Nachträgliche Korrektur: Im August 2024 wurde der Qualitätsbonus nicht berücksichtigt. Die Differenz wird jetzt nachvergütet.',
+    explanation: 'Bei der ursprünglichen Abrechnung im August 2024 wurde der Qualitätsbonus (1,17% bei Stornoquote <15%) irrtümlich nicht berechnet. Diese Korrektur gleicht den Fehler aus.',
+    calculation: 'Korrektur = (Soll-Provision - Ist-Provision) × Zinsfaktor',
+    calculationSteps: [
+      {
+        step: 1,
+        label: 'Ursprüngliche Berechnung rekonstruieren',
+        description: 'Im August 2024 wurde die Provision ohne Qualitätsbonus berechnet.',
+        formula: 'Ist_AP = MB_netto × Staffelfaktor',
+        inputValues: { 'MB_brutto': 632.14, 'VAG_Faktor': 0.90, 'Staffel': 5.25 },
+        calculation: '632,14 € × 0,90 × 5,25 = 2.986,88 €',
+        result: 2986.88,
+        resultLabel: 'Gezahlte Provision (August)',
+        ruleReference: {
+          paragraph: '§4 Abs. 1',
+          document: 'Provisionsbestimmungen KV',
+          quote: 'Die Abschlussprovision ergibt sich aus der Multiplikation des bereinigten Monatsbeitrags mit dem Staffelfaktor.',
+          pageNumber: 8
+        }
+      },
+      {
+        step: 2,
+        label: 'Korrekte Soll-Provision ermitteln',
+        description: 'Die Stornoquote des Vermittlers lag unter 15%, daher hätte der Qualitätsbonus gewährt werden müssen.',
+        formula: 'Soll_AP = Ist_AP × (1 + Bonussatz)',
+        inputValues: { 'Ist_AP': 2986.88, 'Bonussatz': 0.0117 },
+        calculation: '2.986,88 € × 1,0117 = 3.021,80 €',
+        result: 3021.80,
+        resultLabel: 'Korrekte Soll-Provision',
+        ruleReference: {
+          paragraph: '§8 Abs. 2',
+          document: 'Provisionsbestimmungen KV',
+          quote: 'Bei einer Stornoquote von unter 15% im abgelaufenen Geschäftsjahr wird ein Qualitätsbonus von 1,17% gewährt.',
+          pageNumber: 15
+        }
+      },
+      {
+        step: 3,
+        label: 'Differenz berechnen',
+        description: 'Die Differenz zwischen Soll- und Ist-Provision entspricht dem fehlenden Qualitätsbonus.',
+        formula: 'Differenz = Soll_AP - Ist_AP',
+        inputValues: { 'Soll_AP': 3021.80, 'Ist_AP': 2986.88 },
+        calculation: '3.021,80 € - 2.986,88 € = 34,92 €',
+        result: 34.92,
+        resultLabel: 'Fehlbetrag',
+        ruleReference: {
+          paragraph: '§15 Abs. 1',
+          document: 'Provisionsbestimmungen Allgemein',
+          quote: 'Berechnungsfehler werden nach Entdeckung in der nächstmöglichen Abrechnung korrigiert.',
+          pageNumber: 28
+        }
+      },
+      {
+        step: 4,
+        label: 'Zeitraum und Verzinsung',
+        description: 'Die Korrektur erfolgt 4 Monate nach der ursprünglichen Abrechnung. Es wird ein Zinsausgleich gewährt.',
+        formula: 'Zinsen = Differenz × Zinssatz × (Monate/12)',
+        inputValues: { 'Differenz': 34.92, 'Zinssatz': 0.05, 'Monate': 4 },
+        calculation: '34,92 € × 5% × (4/12) = 0,58 €',
+        result: 0.58,
+        resultLabel: 'Zinsausgleich',
+        ruleReference: {
+          paragraph: '§15 Abs. 3',
+          document: 'Provisionsbestimmungen Allgemein',
+          quote: 'Bei verspäteten Nachzahlungen wird ein Zinsausgleich von 5% p.a. gewährt.',
+          pageNumber: 29
+        }
+      },
+      {
+        step: 5,
+        label: 'Verwaltungspauschale für Fehlerkorrektur',
+        description: 'Bei Fehlern seitens des Versicherers wird eine Entschädigungspauschale gezahlt.',
+        formula: 'Pauschale = Festbetrag bei Systemfehler',
+        inputValues: { 'Pauschale': 120.92 },
+        calculation: 'Verwaltungspauschale: 120,92 €',
+        result: 120.92,
+        resultLabel: 'Entschädigungspauschale',
+        ruleReference: {
+          paragraph: '§15 Abs. 5',
+          document: 'Provisionsbestimmungen Allgemein',
+          quote: 'Bei systemseitigen Berechnungsfehlern erhält der Vermittler eine Entschädigungspauschale.',
+          pageNumber: 29
+        }
+      },
+      {
+        step: 6,
+        label: 'Gesamtkorrektur berechnen',
+        description: 'Die Nachzahlung setzt sich aus Fehlbetrag, Zinsen und Pauschale zusammen.',
+        formula: 'Nachzahlung = Differenz + Zinsen + Pauschale',
+        inputValues: { 'Differenz': 34.92, 'Zinsen': 0.58, 'Pauschale': 120.92 },
+        calculation: '34,92 € + 0,58 € + 120,92 € = 156,42 €',
+        result: 156.42,
+        resultLabel: 'Gesamtnachzahlung',
+        ruleReference: {
+          paragraph: '§15 Abs. 6',
+          document: 'Provisionsbestimmungen Allgemein',
+          quote: 'Die Gesamtkorrektur umfasst den Fehlbetrag, Zinsausgleich und ggf. Entschädigungspauschalen.',
+          pageNumber: 30
+        }
+      }
+    ],
+    appliedRules: [
+      { id: 'korrektur-nachzahlung', name: 'Fehlerkorrektur Nachzahlung', category: 'Korrektur' },
+      { id: 'kv-qualitaetsbonus', name: 'Qualitätsbonus (nachträglich)', category: 'Bonus' },
+      { id: 'korrektur-zinsen', name: 'Zinsausgleich bei Verspätung', category: 'Korrektur' },
+      { id: 'korrektur-pauschale', name: 'Entschädigungspauschale', category: 'Korrektur' }
+    ] as AppliedRuleInfo[],
+    finalAmount: 156.42,
+    confidence: 'high',
+    confidenceReasons: [
+      'Ursprünglicher Fehler aus August 2024 dokumentiert',
+      'Qualitätsbonus-Berechtigung durch Stornoquote bestätigt',
+      'Standardkorrekturverfahren mit Zinsen und Pauschale'
+    ],
+    notes: 'Diese Korrektur bezieht sich auf den Vertrag KV-2024-001234 (Müller, Hans), der bereits in dieser Abrechnung als reguläre Abschlussposition erscheint.'
   }
 };
 
@@ -975,18 +1458,24 @@ export function getDemoStatistics() {
 }
 
 /**
- * Sparten-Icons für die UI
+ * Sparten-Icon-Namen für die UI (Lucide icon names)
+ * Diese werden in den Komponenten mit Lucide-Icons gerendert
  */
-export const SPARTEN_ICONS: Record<string, string> = {
-  'KV': '🏥',
-  'SHUK': '🏠',
-  'LV': '📈',
-  'Kfz': '🚗',
-  'Leben': '📈',
-  'Sach': '🏠',
-  'Kranken': '🏥',
-  'KFZ': '🚗'
+export const SPARTEN_ICON_NAMES: Record<string, string> = {
+  'KV': 'heart-pulse',
+  'SHUK': 'home',
+  'LV': 'trending-up',
+  'Kfz': 'car',
+  'Leben': 'trending-up',
+  'Sach': 'home',
+  'Kranken': 'heart-pulse',
+  'KFZ': 'car'
 };
+
+/**
+ * @deprecated - Use SPARTEN_ICON_NAMES with Lucide icons instead
+ */
+export const SPARTEN_ICONS: Record<string, string> = SPARTEN_ICON_NAMES;
 
 /**
  * Provisionsart-Farben für die UI
