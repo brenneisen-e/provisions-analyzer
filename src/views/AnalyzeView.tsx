@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { ArrowLeft, Search, FileDown, ChevronDown, ChevronUp, Flag, Calculator, AlertTriangle, Sparkles } from 'lucide-react';
+import { ArrowLeft, Search, FileDown, ChevronDown, ChevronUp, Flag, Calculator, AlertTriangle, Sparkles, HeartPulse, Shield, PiggyBank, Car, Lightbulb } from 'lucide-react';
 import { Button, Input, Card, CardHeader, ProgressBar, Select, ConfidenceBadge } from '../components/ui';
 import { FileUpload } from '../components/FileUpload';
 import { useAppStore } from '../stores/appStore';
@@ -12,8 +12,46 @@ import { ExportModal } from './ExportModal';
 import { CalculationBreakdown } from '../components/CalculationBreakdown';
 import { RuleReferencePanel, useRuleReferencePanel } from '../components/RuleReferencePanel';
 import { SummaryDashboard } from '../components/SummaryDashboard';
-import { SPARTEN_ICONS, PROVISIONSART_COLORS } from '../data/demoData';
-import type { Transaction, RuleReference } from '../types';
+import { SPARTEN_ICONS, PROVISIONSART_COLORS, SPARTEN_COLORS, PROVISIONSART_BORDER_COLORS } from '../data/demoData';
+import type { Transaction, RuleReference, TransactionExplanation } from '../types';
+
+// Sparten Icon Component
+const SparteIcon: React.FC<{ sparte: string; className?: string }> = ({ sparte, className = 'w-5 h-5' }) => {
+  const colorClass = SPARTEN_COLORS[sparte] || 'text-gray-500';
+  const iconName = SPARTEN_ICONS[sparte];
+
+  switch (iconName) {
+    case 'HeartPulse':
+      return <HeartPulse className={`${className} ${colorClass}`} />;
+    case 'Shield':
+      return <Shield className={`${className} ${colorClass}`} />;
+    case 'PiggyBank':
+      return <PiggyBank className={`${className} ${colorClass}`} />;
+    case 'Car':
+      return <Car className={`${className} ${colorClass}`} />;
+    default:
+      return null;
+  }
+};
+
+// Generate short formula from explanation
+const generateShortFormula = (explanation: TransactionExplanation | null): string | null => {
+  if (!explanation?.calculationSteps || explanation.calculationSteps.length === 0) {
+    return explanation?.calculation || null;
+  }
+
+  // Try to create a condensed formula from steps
+  const steps = explanation.calculationSteps;
+  const lastStep = steps[steps.length - 1];
+
+  // For simple cases, just return the final calculation
+  if (steps.length <= 2) {
+    return lastStep.calculation;
+  }
+
+  // For complex cases, summarize
+  return explanation.calculation || lastStep.calculation;
+};
 
 export const AnalyzeView: React.FC = () => {
   const { setCurrentView, addNotification, demoMode, presenterMode } = useAppStore();
@@ -419,13 +457,14 @@ const TransactionRow: React.FC<TransactionRowProps> = ({
 }) => {
   const isNegative = transaction.provisionsbetrag < 0;
   const isStorno = transaction.provisionsart === 'Storno' || isNegative;
-  const sparteIcon = SPARTEN_ICONS[transaction.sparte || ''] || '';
   const artColors = PROVISIONSART_COLORS[transaction.provisionsart] || PROVISIONSART_COLORS['Sonstig'];
+  const borderColor = PROVISIONSART_BORDER_COLORS[transaction.provisionsart] || 'border-l-gray-400';
+  const shortFormula = generateShortFormula(explanation || null);
 
   return (
     <>
       <tr
-        className={`hover:bg-gray-50 cursor-pointer transition-colors ${isExpanded ? 'bg-blue-50/50' : ''} ${isStorno ? 'bg-red-50/30' : ''}`}
+        className={`hover:bg-gray-50 cursor-pointer transition-colors border-l-4 ${borderColor} ${isExpanded ? 'bg-blue-50/50' : ''} ${isStorno ? 'bg-red-50/30' : ''}`}
         onClick={onToggle}
       >
         <td className="px-4 py-3">
@@ -440,7 +479,7 @@ const TransactionRow: React.FC<TransactionRowProps> = ({
         </td>
         <td className="px-4 py-3">
           <div className="flex items-center gap-2">
-            {sparteIcon && <span className="text-lg">{sparteIcon}</span>}
+            <SparteIcon sparte={transaction.sparte || ''} className="w-5 h-5 flex-shrink-0" />
             <div>
               <div className="text-sm font-medium text-gray-900">
                 {transaction.kundenname || transaction.vertragsnummer}
@@ -452,10 +491,21 @@ const TransactionRow: React.FC<TransactionRowProps> = ({
             )}
           </div>
         </td>
-        <td className="px-4 py-3 text-sm text-gray-600">
-          <span className="truncate max-w-[200px] block" title={transaction.produktart}>
-            {transaction.produktart}
-          </span>
+        <td className="px-4 py-3">
+          <div className="text-sm text-gray-600">
+            <span className="truncate max-w-[180px] block" title={transaction.produktart}>
+              {transaction.produktart}
+            </span>
+            {/* Kurzformel */}
+            {shortFormula && (
+              <div className="flex items-center gap-1 mt-1 text-xs text-gray-500">
+                <Lightbulb className="w-3 h-3 text-amber-500 flex-shrink-0" />
+                <span className="font-mono truncate max-w-[200px]" title={shortFormula}>
+                  {shortFormula}
+                </span>
+              </div>
+            )}
+          </div>
         </td>
         <td className="px-4 py-3">
           <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${artColors.bg} ${artColors.text}`}>

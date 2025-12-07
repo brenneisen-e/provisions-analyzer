@@ -975,17 +975,46 @@ export function getDemoStatistics() {
 }
 
 /**
- * Sparten-Icons für die UI
+ * Sparten-Icon-Namen für die UI (Lucide Icon Namen)
+ * Verwendung: import { HeartPulse, Shield, PiggyBank, Car } from 'lucide-react'
  */
 export const SPARTEN_ICONS: Record<string, string> = {
-  'KV': '🏥',
-  'SHUK': '🏠',
-  'LV': '📈',
-  'Kfz': '🚗',
-  'Leben': '📈',
-  'Sach': '🏠',
-  'Kranken': '🏥',
-  'KFZ': '🚗'
+  'KV': 'HeartPulse',
+  'SHUK': 'Shield',
+  'LV': 'PiggyBank',
+  'Kfz': 'Car',
+  'Leben': 'PiggyBank',
+  'Sach': 'Shield',
+  'Kranken': 'HeartPulse',
+  'KFZ': 'Car'
+};
+
+/**
+ * Sparten-Farben für Icons
+ */
+export const SPARTEN_COLORS: Record<string, string> = {
+  'KV': 'text-blue-600',
+  'SHUK': 'text-green-600',
+  'LV': 'text-amber-600',
+  'Kfz': 'text-purple-600',
+  'Leben': 'text-amber-600',
+  'Sach': 'text-green-600',
+  'Kranken': 'text-blue-600',
+  'KFZ': 'text-purple-600'
+};
+
+/**
+ * Provisionsart-Linienfarben für border-left Styling
+ */
+export const PROVISIONSART_BORDER_COLORS: Record<string, string> = {
+  'Abschluss': 'border-l-emerald-500',
+  'Bestand': 'border-l-blue-500',
+  'Storno': 'border-l-red-500',
+  'Dynamik': 'border-l-amber-500',
+  'Nachprovision': 'border-l-purple-500',
+  'Beitragserhöhung': 'border-l-cyan-500',
+  'Rückabrechnung': 'border-l-orange-500',
+  'Sonstig': 'border-l-gray-400'
 };
 
 /**

@@ -1,7 +1,26 @@
 import React, { useMemo } from 'react';
-import { TrendingUp, CheckCircle, AlertCircle, HelpCircle } from 'lucide-react';
+import { TrendingUp, CheckCircle, AlertCircle, HelpCircle, HeartPulse, Shield, PiggyBank, Car } from 'lucide-react';
 import type { Transaction, TransactionExplanation } from '../types';
-import { SPARTEN_ICONS, PROVISIONSART_COLORS } from '../data/demoData';
+import { SPARTEN_ICONS, PROVISIONSART_COLORS, SPARTEN_COLORS } from '../data/demoData';
+
+// Sparten Icon Component for Dashboard
+const DashboardSparteIcon: React.FC<{ sparte: string; className?: string }> = ({ sparte, className = 'w-6 h-6' }) => {
+  const colorClass = SPARTEN_COLORS[sparte] || 'text-gray-500';
+  const iconName = SPARTEN_ICONS[sparte];
+
+  switch (iconName) {
+    case 'HeartPulse':
+      return <HeartPulse className={`${className} ${colorClass}`} />;
+    case 'Shield':
+      return <Shield className={`${className} ${colorClass}`} />;
+    case 'PiggyBank':
+      return <PiggyBank className={`${className} ${colorClass}`} />;
+    case 'Car':
+      return <Car className={`${className} ${colorClass}`} />;
+    default:
+      return <div className={`${className} rounded-full bg-gray-200`} />;
+  }
+};
 
 interface SummaryDashboardProps {
   transactions: Transaction[];
@@ -149,7 +168,6 @@ export const SummaryDashboard: React.FC<SummaryDashboardProps> = ({
         <p className="text-xs text-gray-500 uppercase tracking-wide font-medium mb-3">Nach Sparte</p>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {sortedSparten.map(([sparte, data]) => {
-            const icon = SPARTEN_ICONS[sparte] || '📄';
             const percentage = stats.totalProvision > 0
               ? Math.round((data.sum / stats.totalProvision) * 100)
               : 0;
@@ -160,7 +178,7 @@ export const SummaryDashboard: React.FC<SummaryDashboardProps> = ({
                 className="bg-white rounded-lg border border-gray-200 p-3 hover:shadow-md transition-shadow"
               >
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="text-xl">{icon}</span>
+                  <DashboardSparteIcon sparte={sparte} className="w-5 h-5" />
                   <span className="text-sm font-medium text-gray-700">{sparte}</span>
                 </div>
                 <p className={`text-lg font-bold ${data.sum < 0 ? 'text-red-600' : 'text-gray-900'}`}>
