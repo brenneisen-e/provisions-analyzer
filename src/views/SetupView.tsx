@@ -184,7 +184,7 @@ export const SetupView: React.FC = () => {
     // Kurze Verzögerung für UI-Feedback
     setTimeout(() => {
       const blob = generateSampleProvisionsRules();
-      downloadBlob(blob, 'Alpha-Versicherung-Provisionsbestimmungen.pdf');
+      downloadBlob(blob, 'Beispiel-Provisionsbestimmungen.pdf');
       addNotification({
         type: 'success',
         message: 'Provisionsbestimmungen (80 Seiten) wurden heruntergeladen'
@@ -201,7 +201,7 @@ export const SetupView: React.FC = () => {
 
     setTimeout(() => {
       const blob = generateVergütungsnachweise();
-      downloadBlob(blob, 'Alpha-Verguetungsnachweise-06-2024.pdf');
+      downloadBlob(blob, 'Beispiel-Verguetungsnachweise-06-2024.pdf');
       addNotification({
         type: 'success',
         message: 'Vergütungsnachweise (7 Seiten) wurden heruntergeladen'
@@ -209,10 +209,10 @@ export const SetupView: React.FC = () => {
     }, 100);
   };
 
-  // Load predefined Alpha rules
+  // Load predefined example rules
   const handleLoadPredefinedRules = () => {
     setRules(barmeniaProvisionRules);
-    setDocumentName('Alpha Versicherung Vertretervertrag (vordefiniert)');
+    setDocumentName('Beispiel-Provisionsbestimmungen (vordefiniert)');
     setAnalysisProgress({
       stage: 'complete',
       current: barmeniaProvisionRules.length,
@@ -221,7 +221,7 @@ export const SetupView: React.FC = () => {
     });
     addNotification({
       type: 'success',
-      message: `${barmeniaProvisionRules.length} Provisionsregeln aus Alpha Versicherung Vertrag geladen`
+      message: `${barmeniaProvisionRules.length} Beispiel-Provisionsregeln geladen`
     });
   };
 
@@ -237,7 +237,7 @@ export const SetupView: React.FC = () => {
   const handleStartDemo = () => {
     // Load predefined rules
     setRules(barmeniaProvisionRules);
-    setDocumentName('Demo: Alpha Versicherung (Showcase)');
+    setDocumentName('Demo: Muster-Versicherer (Showcase)');
 
     // Load demo transactions
     setTransactions(DEMO_TRANSACTIONS);
@@ -374,26 +374,26 @@ export const SetupView: React.FC = () => {
       {rules.length === 0 && (
         <Card>
           <CardHeader
-            title="Schnellstart: Alpha Versicherung Vertrag"
-            description="Verwenden Sie die vordefinierten Provisionsregeln aus Ihrem Vertretervertrag"
+            title="Schnellstart: Beispiel-Provisionsregeln"
+            description="Verwenden Sie die vordefinierten Beispielregeln zum Testen"
           />
 
           <div className="p-4 bg-blue-50 rounded-lg border border-blue-200 mb-4">
             <p className="text-sm text-blue-800 mb-3">
-              Die Provisionsregeln aus Ihrem Alpha Versicherung Vertretervertrag sind bereits im System hinterlegt.
-              Sie können direkt mit der Abrechnungsanalyse starten, ohne den Vertrag hochzuladen.
+              Umfangreiche Beispiel-Provisionsregeln sind bereits im System hinterlegt.
+              Sie können direkt mit der Abrechnungsanalyse starten.
             </p>
             <Button
               onClick={handleLoadPredefinedRules}
               className="w-full"
               leftIcon={<CheckCircle className="w-4 h-4" />}
             >
-              Vordefinierte Regeln laden ({barmeniaProvisionRules.length} Regeln)
+              Beispielregeln laden ({barmeniaProvisionRules.length} Regeln)
             </Button>
           </div>
 
           <p className="text-xs text-gray-500 text-center">
-            Oder laden Sie unten einen anderen Vertrag hoch
+            Oder laden Sie unten Ihre eigenen Provisionsbestimmungen hoch
           </p>
         </Card>
       )}
@@ -510,7 +510,7 @@ export const SetupView: React.FC = () => {
         <div className="space-y-3">
           <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
             <p className="text-sm font-medium text-blue-800 mb-2">
-              Beispiel-Provisionsbestimmungen (Alpha Versicherung)
+              Beispiel-Provisionsbestimmungen
             </p>
             <p className="text-xs text-blue-600 mb-3">
               Generiert ein vollständiges 80-seitiges Dokument mit allen Provisionsregeln
@@ -527,7 +527,7 @@ export const SetupView: React.FC = () => {
 
           <div className="p-3 bg-green-50 rounded-lg border border-green-200">
             <p className="text-sm font-medium text-green-800 mb-2">
-              Umfassende Vergütungsnachweise (Alpha-Vorlage)
+              Beispiel-Vergütungsnachweise
             </p>
             <p className="text-xs text-green-600 mb-3">
               7-seitiges Dokument mit Gesamtübersicht, Kontoauszug, KV/SHUK/LV-Einzelnachweisen

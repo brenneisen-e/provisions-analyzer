@@ -103,7 +103,7 @@ export interface ApiConfig {
   anthropicApiKey: string;
 }
 
-export type ViewType = 'setup' | 'analyze' | 'export';
+export type ViewType = 'setup' | 'analyze' | 'export' | 'architecture';
 
 export interface AnalysisProgress {
   stage: 'idle' | 'parsing' | 'chunking' | 'extracting' | 'complete' | 'error';
