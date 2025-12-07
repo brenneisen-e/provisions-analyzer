@@ -788,18 +788,6 @@ const NextStepsSection: React.FC<NextStepsSectionProps> = ({ selectedOption }) =
             <p>Wählen Sie oben eine Implementierungsoption, um die nächsten Schritte zu sehen.</p>
           </div>
         )}
-
-        {/* CTA */}
-        {selectedOption && (
-          <div className="mt-8 p-4 bg-teal-50 rounded-lg border border-teal-200 text-center">
-            <p className="text-teal-800 mb-3">
-              Bereit für den nächsten Schritt?
-            </p>
-            <Button className="bg-teal-600 hover:bg-teal-700 text-white">
-              Workshop vereinbaren
-            </Button>
-          </div>
-        )}
       </div>
     </Card>
   );
