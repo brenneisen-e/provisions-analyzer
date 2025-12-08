@@ -236,31 +236,55 @@ export function generateSampleProvisionStatement(): Blob {
 
   y += 34;
 
+  // ===== SPALTENLEGENDE =====
+  doc.setFillColor(255, 251, 235); // Leichtes Gelb
+  doc.roundedRect(ML, y, CW, 12, 1, 1, 'F');
+  doc.setDrawColor(251, 191, 36);
+  doc.roundedRect(ML, y, CW, 12, 1, 1, 'S');
+
+  doc.setFontSize(6);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(120, 53, 15); // Amber-900
+  doc.text('Spaltenlegende:', ML + 3, y + 4);
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(5.5);
+  const legendText = [
+    'VS-Nr = Versicherungsschein-Nummer | Sparte: PKV=Kranken, Leben=Lebensversicherung, Sach=Sachversicherung, Kfz=Kraftfahrzeug',
+    'Art: AP=Abschlussprovision, BP=Bestandsprovision, ST=Storno, DYN=Dynamik, NP=Nachprovision | Basis = Berechnungsgrundlage (z.B. BWS oder Beitrag)',
+    'Satz = Provisionssatz (‰=Promille, MB=Monatsbeiträge, %=Prozent) | SR = Stornoreserve (10% Einbehalt bei Neugeschäft)'
+  ];
+  legendText.forEach((line, idx) => {
+    doc.text(line, ML + 3, y + 7 + (idx * 2.5));
+  });
+
+  y += 16;
+
   // ===== TRANSAKTIONS-TABELLE (LANDSCAPE MIT ALLEN SPALTEN) =====
 
   // Tabellenkopf
   doc.setFillColor(...COLOR_TABLE_HEADER);
   doc.rect(ML, y, CW, 7, 'F');
 
-  doc.setFontSize(6.5);
+  doc.setFontSize(6);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(...COLOR_GRAY_DARK);
 
-  // Spalten für Landscape (273mm Breite) - 12 Spalten
-  // Datum(18) VS-Nr(24) Kunde(22) Gesellschaft(22) Produkt(32) Sparte(16) Art(14) Beitrag(20) Basis(22) Satz(16) Provision(24) SR(18)
+  // Spalten für Landscape (273mm Breite) - 12 Spalten - optimierte Breiten
+  // Total: 20+26+28+26+40+16+14+22+26+18+26+18 = 280 (passt bei 273mm wenn x-Offset berücksichtigt)
   const cols = [
-    { x: ML + 1, header: 'Datum', w: 17 },
-    { x: ML + 18, header: 'VS-Nummer', w: 23 },
-    { x: ML + 42, header: 'Kunde', w: 21 },
-    { x: ML + 64, header: 'Gesellschaft', w: 21 },
-    { x: ML + 86, header: 'Produkt', w: 31 },
-    { x: ML + 118, header: 'Sparte', w: 15 },
-    { x: ML + 134, header: 'Art', w: 13 },
-    { x: ML + 148, header: 'Beitrag €', w: 19 },
-    { x: ML + 168, header: 'Basis €', w: 21 },
-    { x: ML + 190, header: 'Satz', w: 15 },
-    { x: ML + 206, header: 'Provision €', w: 23 },
-    { x: ML + 230, header: 'SR €', w: 17 },
+    { x: ML + 1, header: 'Datum', w: 19 },
+    { x: ML + 20, header: 'VS-Nr', w: 25 },
+    { x: ML + 46, header: 'Kunde', w: 27 },
+    { x: ML + 74, header: 'Gesellschaft', w: 25 },
+    { x: ML + 100, header: 'Produkt', w: 38 },
+    { x: ML + 139, header: 'Sparte', w: 15 },
+    { x: ML + 155, header: 'Art', w: 13 },
+    { x: ML + 169, header: 'Beitrag €', w: 21 },
+    { x: ML + 191, header: 'Basis €', w: 25 },
+    { x: ML + 217, header: 'Satz', w: 17 },
+    { x: ML + 235, header: 'Provision €', w: 25 },
+    { x: ML + 261, header: 'SR €', w: 17 },
   ];
 
   cols.forEach(col => {
@@ -289,7 +313,7 @@ export function generateSampleProvisionStatement(): Blob {
       doc.setFillColor(...COLOR_TABLE_HEADER);
       doc.rect(ML, y, CW, 7, 'F');
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(6.5);
+      doc.setFontSize(6);
       doc.setTextColor(...COLOR_GRAY_DARK);
       cols.forEach(col => {
         doc.text(col.header, col.x, y + 4.5);
@@ -308,14 +332,14 @@ export function generateSampleProvisionStatement(): Blob {
     }
 
     doc.setTextColor(...COLOR_GRAY_DARK);
-    doc.setFontSize(6.5);
+    doc.setFontSize(6);
 
-    // Alle 12 Spalten mit Daten füllen
+    // Alle 12 Spalten mit Daten füllen (angepasste Zeichenlängen)
     doc.text(tx.datum, cols[0].x, y + 4);
-    doc.text(tx.vsnr, cols[1].x, y + 4);
-    doc.text(tx.kunde.substring(0, 12), cols[2].x, y + 4);
-    doc.text(tx.gesellschaft.substring(0, 12), cols[3].x, y + 4);
-    doc.text(tx.produkt.substring(0, 18), cols[4].x, y + 4);
+    doc.text(tx.vsnr.substring(0, 14), cols[1].x, y + 4);
+    doc.text(tx.kunde.substring(0, 16), cols[2].x, y + 4);
+    doc.text(tx.gesellschaft.substring(0, 15), cols[3].x, y + 4);
+    doc.text(tx.produkt.substring(0, 22), cols[4].x, y + 4);
     doc.text(tx.sparte, cols[5].x, y + 4);
     doc.text(tx.artCode, cols[6].x, y + 4);
 

@@ -12,7 +12,7 @@ import { ExportModal } from './ExportModal';
 import { CalculationBreakdown } from '../components/CalculationBreakdown';
 import { RuleReferencePanel, useRuleReferencePanel } from '../components/RuleReferencePanel';
 import { SummaryDashboard } from '../components/SummaryDashboard';
-import { SPARTEN_ICONS, PROVISIONSART_COLORS, SPARTEN_COLORS, PROVISIONSART_BORDER_COLORS } from '../data/demoData';
+import { SPARTEN_ICONS, PROVISIONSART_COLORS, SPARTEN_COLORS, PROVISIONSART_BORDER_COLORS, DEMO_TRANSACTIONS, DEMO_EXPLANATIONS } from '../data/demoData';
 import { getDemoExplanationStats } from '../services/ruleMatcher';
 import type { Transaction, RuleReference, TransactionExplanation } from '../types';
 
@@ -55,7 +55,7 @@ const generateShortFormula = (explanation: TransactionExplanation | null): strin
 };
 
 export const AnalyzeView: React.FC = () => {
-  const { setCurrentView, addNotification, demoMode, presenterMode } = useAppStore();
+  const { setCurrentView, addNotification, demoMode, setDemoMode, presenterMode } = useAppStore();
   const { rules } = useRulesStore();
   const {
     transactions,
@@ -91,6 +91,31 @@ export const AnalyzeView: React.FC = () => {
     setSelectedFile(file);
   }, []);
 
+  // Helper: simulate progress animation
+  const simulateProgress = async (
+    stages: { percent: number; message: string }[],
+    baseDelay: number = 400
+  ) => {
+    for (const stage of stages) {
+      setAnalysisProgress({
+        stage: 'analyzing',
+        current: stage.percent,
+        total: 100,
+        message: stage.message
+      });
+      await new Promise(resolve => setTimeout(resolve, baseDelay + Math.random() * 200));
+    }
+  };
+
+  // Check if extracted transactions match demo data
+  const isSamplePdf = (extractedText: string): boolean => {
+    // Check for known demo contract numbers in the PDF text
+    const demoContractNumbers = DEMO_TRANSACTIONS.map(t => t.vertragsnummer);
+    const matchCount = demoContractNumbers.filter(cn => extractedText.includes(cn)).length;
+    // If at least 5 demo contract numbers are found, it's likely the sample PDF
+    return matchCount >= 5;
+  };
+
   // Process provision statement
   const handleProcessStatement = async () => {
     if (!selectedFile) return;
@@ -106,15 +131,55 @@ export const AnalyzeView: React.FC = () => {
 
       const document = await extractTextFromPDF(selectedFile, (current, total) => {
         setAnalysisProgress({
-          current: Math.round((current / total) * 100),
+          stage: 'parsing',
+          current: Math.round((current / total) * 50),
+          total: 100,
           message: `Seite ${current} von ${total}...`
         });
       });
 
-      // Extract transactions
+      // Check if this is the sample PDF
+      if (isSamplePdf(document.fullText)) {
+        // This is the sample PDF - show animated progress then switch to demo mode
+        await simulateProgress([
+          { percent: 20, message: 'Dokumentstruktur wird analysiert...' },
+          { percent: 40, message: 'Transaktionen werden extrahiert...' },
+          { percent: 60, message: 'Provisionsregeln werden zugeordnet...' },
+          { percent: 80, message: 'Berechnungen werden verifiziert...' },
+          { percent: 95, message: 'Ergebnisse werden aufbereitet...' }
+        ]);
+
+        // Load demo data
+        setTransactions(DEMO_TRANSACTIONS);
+
+        // Load pre-calculated explanations
+        const explanationsArray = Object.values(DEMO_EXPLANATIONS);
+        for (const explanation of explanationsArray) {
+          setExplanation(explanation.transactionId, explanation);
+        }
+
+        // Enable demo mode
+        setDemoMode(true);
+
+        setAnalysisProgress({
+          stage: 'complete',
+          current: 100,
+          total: 100,
+          message: `${DEMO_TRANSACTIONS.length} Transaktionen analysiert - Demo-Modus aktiviert`
+        });
+
+        addNotification({
+          type: 'success',
+          message: 'Beispielabrechnung erkannt! Demo-Modus mit vollständigen Erklärungen aktiviert.'
+        });
+
+        return;
+      }
+
+      // Regular processing for non-sample PDFs
       setAnalysisProgress({
         stage: 'parsing',
-        current: 0,
+        current: 50,
         total: 100,
         message: 'Transaktionen werden extrahiert...'
       });
@@ -122,7 +187,12 @@ export const AnalyzeView: React.FC = () => {
       const extractedTransactions = await parseTransactionsFromText(
         document.fullText,
         (current, total, message) => {
-          setAnalysisProgress({ current, total, message });
+          setAnalysisProgress({
+            stage: 'parsing',
+            current: 50 + Math.round((current / total) * 30),
+            total: 100,
+            message
+          });
         }
       );
       setTransactions(extractedTransactions);
@@ -144,8 +214,8 @@ export const AnalyzeView: React.FC = () => {
       // Analyze transactions
       setAnalysisProgress({
         stage: 'analyzing',
-        current: 0,
-        total: extractedTransactions.length,
+        current: 80,
+        total: 100,
         message: 'Transaktionen werden analysiert...'
       });
 
@@ -153,7 +223,12 @@ export const AnalyzeView: React.FC = () => {
         extractedTransactions,
         rules,
         (current, total, message) => {
-          setAnalysisProgress({ current, total, message });
+          setAnalysisProgress({
+            stage: 'analyzing',
+            current: 80 + Math.round((current / total) * 20),
+            total: 100,
+            message
+          });
         }
       );
 
@@ -164,8 +239,8 @@ export const AnalyzeView: React.FC = () => {
 
       setAnalysisProgress({
         stage: 'complete',
-        current: extractedTransactions.length,
-        total: extractedTransactions.length,
+        current: 100,
+        total: 100,
         message: `${extractedTransactions.length} Transaktionen analysiert`
       });
 
