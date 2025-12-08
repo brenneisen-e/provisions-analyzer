@@ -37,7 +37,7 @@ export async function sendMessage(
   const { maxTokens = 4096, temperature = 0.3 } = options;
 
   const response = await anthropicClient.messages.create({
-    model: 'claude-sonnet-4-20250514',
+    model: 'claude-sonnet-4-5-20250929',
     max_tokens: maxTokens,
     temperature,
     system: systemPrompt,
@@ -69,7 +69,7 @@ export async function validateApiKey(apiKey: string): Promise<boolean> {
     });
 
     await testClient.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-5-20250929',
       max_tokens: 10,
       messages: [{ role: 'user', content: 'Hi' }]
     });
