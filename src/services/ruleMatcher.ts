@@ -181,10 +181,25 @@ function calculateMatchScore(rule: ProvisionRule, context: MatchContext): { scor
 }
 
 /**
- * Get pre-computed explanation for demo transactions
+ * Get pre-computed explanation for demo transactions by ID
  */
 export function getDemoExplanation(transactionId: string): TransactionExplanation | null {
   return DEMO_EXPLANATIONS[transactionId] || null;
+}
+
+/**
+ * Get pre-computed explanation for demo transactions by contract number
+ * This is used when parsing PDFs generates new transaction IDs
+ */
+export function getDemoExplanationByContract(vertragsnummer: string): TransactionExplanation | null {
+  // Find the demo transaction with this contract number
+  const { DEMO_TRANSACTIONS } = require('../data/demoData');
+
+  const demoTx = DEMO_TRANSACTIONS.find((t: Transaction) => t.vertragsnummer === vertragsnummer);
+  if (demoTx && DEMO_EXPLANATIONS[demoTx.id]) {
+    return DEMO_EXPLANATIONS[demoTx.id];
+  }
+  return null;
 }
 
 /**
@@ -295,6 +310,7 @@ export default {
   getRulesForCategory,
   matchTransactionToRules,
   getDemoExplanation,
+  getDemoExplanationByContract,
   getDemoRuleMapping,
   getAppliedRuleDetails,
   createRuleReference,
