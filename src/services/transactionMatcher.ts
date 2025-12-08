@@ -508,23 +508,30 @@ export async function explainAllTransactionsWithFallback(
 
   for (let i = 0; i < transactions.length; i++) {
     const transaction = transactions[i];
-    onProgress?.(i + 1, total, useApi
-      ? `KI-Analyse Transaktion ${i + 1} von ${total}...`
-      : `Regelwerk-Analyse Transaktion ${i + 1} von ${total}...`
-    );
 
-    let explanation: TransactionExplanation;
+    let explanation: TransactionExplanation | null = null;
 
-    if (useApi) {
+    // FIRST: Check if we have a pre-computed demo explanation (by contract number)
+    // This ensures the rich demo explanations are used for sample PDFs
+    const demoExplanation = getDemoExplanationByContract(transaction.vertragsnummer);
+    if (demoExplanation) {
+      onProgress?.(i + 1, total, `Lade Erklärung für ${transaction.vertragsnummer}...`);
+      explanation = {
+        ...demoExplanation,
+        transactionId: transaction.id
+      };
+    } else if (useApi) {
+      // SECOND: Try API if available
+      onProgress?.(i + 1, total, `KI-Analyse Transaktion ${i + 1} von ${total}...`);
       try {
         explanation = await explainTransaction(transaction, rules);
       } catch (error) {
-        // Fallback to rule-based explanation if API fails
         console.warn('API-Aufruf fehlgeschlagen, nutze Fallback:', error);
         explanation = generateFallbackExplanation(transaction);
       }
     } else {
-      // Use fallback without API
+      // THIRD: Use rule-based fallback
+      onProgress?.(i + 1, total, `Regelwerk-Analyse Transaktion ${i + 1} von ${total}...`);
       explanation = generateFallbackExplanation(transaction);
     }
 
@@ -532,7 +539,7 @@ export async function explainAllTransactionsWithFallback(
 
     // Small delay for progress visibility
     if (i < transactions.length - 1) {
-      await new Promise(resolve => setTimeout(resolve, useApi ? 300 : 50));
+      await new Promise(resolve => setTimeout(resolve, demoExplanation ? 30 : (useApi ? 300 : 50)));
     }
   }
 
