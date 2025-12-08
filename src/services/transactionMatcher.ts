@@ -5,7 +5,8 @@ import { generateSimpleId, parseGermanDate } from '../utils/helpers';
 import {
   matchTransactionToRules,
   createRuleReference,
-  getDemoExplanation
+  getDemoExplanation,
+  getDemoExplanationByContract
 } from './ruleMatcher';
 
 interface ParsedTransactionsResponse {
@@ -366,10 +367,22 @@ export async function explainAllTransactions(
 export function generateFallbackExplanation(
   transaction: Transaction
 ): TransactionExplanation {
-  // First check if this is a demo transaction with pre-computed explanation
+  // First check if this is a demo transaction with pre-computed explanation (by ID)
   const demoExplanation = getDemoExplanation(transaction.id);
   if (demoExplanation) {
-    return demoExplanation;
+    return {
+      ...demoExplanation,
+      transactionId: transaction.id // Update ID to match current transaction
+    };
+  }
+
+  // Also try to find by contract number (for parsed PDFs with new IDs)
+  const demoByContract = getDemoExplanationByContract(transaction.vertragsnummer);
+  if (demoByContract) {
+    return {
+      ...demoByContract,
+      transactionId: transaction.id // Update ID to match current transaction
+    };
   }
 
   // Match transaction to rules using the intelligent matcher
