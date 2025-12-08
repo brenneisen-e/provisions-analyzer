@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { Key, FileText, CheckCircle, Download, AlertCircle, Play, Sparkles } from 'lucide-react';
+import { Key, FileText, CheckCircle, Download, AlertCircle, Play, Sparkles, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button, Input, Card, CardHeader, ProgressBar } from '../components/ui';
 import { FileUpload } from '../components/FileUpload';
 import { useAppStore } from '../stores/appStore';
@@ -33,6 +33,7 @@ export const SetupView: React.FC = () => {
   const [isValidating, setIsValidating] = useState(false);
   const [isApiKeyValid, setIsApiKeyValid] = useState(!!apiConfig.anthropicApiKey);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isApiSectionExpanded, setIsApiSectionExpanded] = useState(false); // Collapsed by default
 
   // Validate API Key
   const handleValidateApiKey = async () => {
@@ -317,39 +318,61 @@ export const SetupView: React.FC = () => {
         </div>
       </div>
 
-      {/* API Key Section */}
+      {/* API Key Section - Collapsible */}
       <Card>
-        <CardHeader
-          title="API-Konfiguration"
-          description="Geben Sie Ihren Anthropic API-Key ein"
-        />
-
-        <div className="flex gap-3">
-          <div className="flex-1">
-            <Input
-              type="password"
-              value={apiKeyInput}
-              onChange={(e) => setApiKeyInput(e.target.value)}
-              placeholder="sk-ant-..."
-              leftIcon={<Key className="w-4 h-4" />}
-              rightIcon={isApiKeyValid ? (
+        <button
+          onClick={() => setIsApiSectionExpanded(!isApiSectionExpanded)}
+          className="w-full flex items-center justify-between text-left"
+        >
+          <div>
+            <h3 className="text-base font-semibold text-gray-900 flex items-center gap-2">
+              <Key className="w-4 h-4" />
+              API-Konfiguration
+              {isApiKeyValid && (
                 <CheckCircle className="w-4 h-4 text-green-500" />
-              ) : null}
-              disabled={isValidating}
-            />
+              )}
+            </h3>
+            <p className="text-sm text-gray-500">
+              {isApiKeyValid ? 'API-Key ist konfiguriert' : 'Optional: Anthropic API-Key für erweiterte Analysen'}
+            </p>
           </div>
-          <Button
-            onClick={handleValidateApiKey}
-            isLoading={isValidating}
-            variant={isApiKeyValid ? 'secondary' : 'primary'}
-          >
-            {isApiKeyValid ? 'Validiert' : 'Validieren'}
-          </Button>
-        </div>
+          {isApiSectionExpanded ? (
+            <ChevronUp className="w-5 h-5 text-gray-400" />
+          ) : (
+            <ChevronDown className="w-5 h-5 text-gray-400" />
+          )}
+        </button>
 
-        <p className="text-xs text-gray-500 mt-2">
-          Der API-Key wird lokal in Ihrem Browser gespeichert und nur für Anfragen an die Anthropic API verwendet.
-        </p>
+        {isApiSectionExpanded && (
+          <div className="mt-4 pt-4 border-t border-gray-200">
+            <div className="flex gap-3">
+              <div className="flex-1">
+                <Input
+                  type="password"
+                  value={apiKeyInput}
+                  onChange={(e) => setApiKeyInput(e.target.value)}
+                  placeholder="sk-ant-..."
+                  leftIcon={<Key className="w-4 h-4" />}
+                  rightIcon={isApiKeyValid ? (
+                    <CheckCircle className="w-4 h-4 text-green-500" />
+                  ) : null}
+                  disabled={isValidating}
+                />
+              </div>
+              <Button
+                onClick={handleValidateApiKey}
+                isLoading={isValidating}
+                variant={isApiKeyValid ? 'secondary' : 'primary'}
+              >
+                {isApiKeyValid ? 'Validiert' : 'Validieren'}
+              </Button>
+            </div>
+
+            <p className="text-xs text-gray-500 mt-2">
+              Der API-Key wird lokal in Ihrem Browser gespeichert und nur für Anfragen an die Anthropic API verwendet.
+            </p>
+          </div>
+        )}
       </Card>
 
       {/* Quick Start - Vordefinierte Regeln */}

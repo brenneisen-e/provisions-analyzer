@@ -270,21 +270,21 @@ export function generateSampleProvisionStatement(): Blob {
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(...COLOR_GRAY_DARK);
 
-  // Spalten für Landscape (273mm Breite) - 12 Spalten - optimierte Breiten
-  // Total: 20+26+28+26+40+16+14+22+26+18+26+18 = 280 (passt bei 273mm wenn x-Offset berücksichtigt)
+  // Spalten für Landscape (273mm Breite) - 12 Spalten - korrigierte Breiten
+  // Endet bei ML + 260 = 272mm, innerhalb der 273mm Inhaltsbreite
   const cols = [
-    { x: ML + 1, header: 'Datum', w: 19 },
-    { x: ML + 20, header: 'VS-Nr', w: 25 },
-    { x: ML + 46, header: 'Kunde', w: 27 },
-    { x: ML + 74, header: 'Gesellschaft', w: 25 },
-    { x: ML + 100, header: 'Produkt', w: 38 },
-    { x: ML + 139, header: 'Sparte', w: 15 },
-    { x: ML + 155, header: 'Art', w: 13 },
-    { x: ML + 169, header: 'Beitrag €', w: 21 },
-    { x: ML + 191, header: 'Basis €', w: 25 },
-    { x: ML + 217, header: 'Satz', w: 17 },
-    { x: ML + 235, header: 'Provision €', w: 25 },
-    { x: ML + 261, header: 'SR €', w: 17 },
+    { x: ML + 1, header: 'Datum', w: 17 },
+    { x: ML + 18, header: 'VS-Nr', w: 24 },
+    { x: ML + 43, header: 'Kunde', w: 25 },
+    { x: ML + 69, header: 'Gesellschaft', w: 24 },
+    { x: ML + 94, header: 'Produkt', w: 37 },
+    { x: ML + 132, header: 'Sparte', w: 13 },
+    { x: ML + 146, header: 'Art', w: 11 },
+    { x: ML + 158, header: 'Beitrag €', w: 19 },
+    { x: ML + 178, header: 'Basis €', w: 23 },
+    { x: ML + 202, header: 'Satz', w: 15 },
+    { x: ML + 218, header: 'Provision €', w: 24 },
+    { x: ML + 243, header: 'SR €', w: 14 },
   ];
 
   cols.forEach(col => {
@@ -375,17 +375,19 @@ export function generateSampleProvisionStatement(): Blob {
   y += 2;
   doc.setDrawColor(...COLOR_PRIMARY);
   doc.setLineWidth(0.5);
-  doc.line(ML, y, PAGE_W - MR, y);
+  doc.line(ML, y, ML + CW - 16, y); // Linie nur bis kurz vor SR
 
   const bruttoSumme = transactions.reduce((sum, tx) => sum + tx.provision, 0);
   const srSumme = transactions.reduce((sum, tx) => sum + tx.sr, 0);
 
   y += 5;
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(9);
+  doc.setFontSize(8);
   doc.text('Brutto-Provision gesamt:', ML + 2, y);
   doc.text(formatEuro(bruttoSumme), cols[10].x + cols[10].w - 2, y, { align: 'right' });
-  doc.text('SR gesamt:', cols[11].x - 15, y);
+  doc.setFontSize(7);
+  doc.text('SR:', cols[11].x - 2, y);
+  doc.setFontSize(8);
   doc.text(formatEuro(srSumme), cols[11].x + cols[11].w - 2, y, { align: 'right' });
 
   // ===== SEITE 2: ÜBERSICHTEN (auch Landscape) =====
