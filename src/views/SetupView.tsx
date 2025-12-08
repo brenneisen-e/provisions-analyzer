@@ -177,7 +177,7 @@ export const SetupView: React.FC = () => {
   const handleGenerateProvisionsRules = () => {
     addNotification({
       type: 'info',
-      message: 'Generiere Provisionsbestimmungen (ca. 80 Seiten)...'
+      message: 'Generiere Provisionsbestimmungen...'
     });
 
     // Kurze Verzögerung für UI-Feedback
@@ -186,7 +186,7 @@ export const SetupView: React.FC = () => {
       downloadBlob(blob, 'Beispiel-Provisionsbestimmungen.pdf');
       addNotification({
         type: 'success',
-        message: 'Provisionsbestimmungen (80 Seiten) wurden heruntergeladen'
+        message: 'Provisionsbestimmungen wurden heruntergeladen'
       });
     }, 100);
   };
@@ -495,7 +495,7 @@ export const SetupView: React.FC = () => {
               Beispiel-Provisionsbestimmungen
             </p>
             <p className="text-xs text-blue-600 mb-3">
-              Generiert ein vollständiges 80-seitiges Dokument mit allen Provisionsregeln
+              Generiert ein Dokument mit allen Provisionsregeln
             </p>
             <Button
               variant="outline"
@@ -503,7 +503,7 @@ export const SetupView: React.FC = () => {
               leftIcon={<FileText className="w-4 h-4" />}
               className="w-full"
             >
-              Provisionsbestimmungen generieren (80 Seiten)
+              Provisionsbestimmungen generieren
             </Button>
           </div>
 
