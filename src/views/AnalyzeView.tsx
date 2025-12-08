@@ -6,7 +6,7 @@ import { useAppStore } from '../stores/appStore';
 import { useRulesStore } from '../stores/rulesStore';
 import { useTransactionsStore } from '../stores/transactionsStore';
 import { extractTextFromPDF } from '../services/pdfParser';
-import { parseTransactionsFromText, explainAllTransactions } from '../services/transactionMatcher';
+import { parseTransactionsFromText, explainAllTransactionsWithFallback } from '../services/transactionMatcher';
 import { formatCurrency, formatDate } from '../utils/helpers';
 import { ExportModal } from './ExportModal';
 import { CalculationBreakdown } from '../components/CalculationBreakdown';
@@ -144,7 +144,7 @@ export const AnalyzeView: React.FC = () => {
         message: 'Transaktionen werden analysiert...'
       });
 
-      const transactionExplanations = await explainAllTransactions(
+      const transactionExplanations = await explainAllTransactionsWithFallback(
         extractedTransactions,
         rules,
         (current, total, message) => {
