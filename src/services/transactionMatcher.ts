@@ -1,7 +1,12 @@
 import type { Transaction, TransactionExplanation, ProvisionRule, CalculationStep, AppliedRuleInfo } from '../types';
-import { sendMessage, extractJSON, PROMPTS } from './anthropicClient';
+import { sendMessage, extractJSON, PROMPTS, isClientInitialized } from './anthropicClient';
 import { findMatchingRules, rulesToPromptFormat } from './ruleExtractor';
 import { generateSimpleId, parseGermanDate } from '../utils/helpers';
+import {
+  matchTransactionToRules,
+  createRuleReference,
+  getDemoExplanation
+} from './ruleMatcher';
 
 interface ParsedTransactionsResponse {
   transactions: Partial<Transaction>[];
@@ -203,6 +208,175 @@ export async function explainAllTransactions(
     // Small delay to avoid rate limiting
     if (i < transactions.length - 1) {
       await new Promise(resolve => setTimeout(resolve, 300));
+    }
+  }
+
+  onProgress?.(total, total, 'Analyse abgeschlossen');
+
+  return explanations;
+}
+
+/**
+ * Generiert eine Erklärung ohne API basierend auf dem Regelwerk
+ * (Fallback wenn kein API-Key verfügbar)
+ */
+export function generateFallbackExplanation(
+  transaction: Transaction
+): TransactionExplanation {
+  // First check if this is a demo transaction with pre-computed explanation
+  const demoExplanation = getDemoExplanation(transaction.id);
+  if (demoExplanation) {
+    return demoExplanation;
+  }
+
+  // Match transaction to rules using the intelligent matcher
+  const matchResults = matchTransactionToRules(transaction);
+
+  if (matchResults.length === 0) {
+    return {
+      transactionId: transaction.id,
+      appliedRules: [],
+      explanation: 'Keine passende Provisionsregel gefunden.',
+      calculation: 'Automatische Berechnung nicht möglich',
+      confidence: 'low',
+      notes: 'Laden Sie einen API-Key ein, um eine detaillierte KI-Analyse zu erhalten.'
+    };
+  }
+
+  // Get top matching rules (up to 3)
+  const topMatches = matchResults.slice(0, 3);
+  const primaryRule = topMatches[0].rule;
+
+  // Generate calculation steps based on matched rules
+  const calculationSteps: CalculationStep[] = [];
+  let stepNum = 1;
+
+  // Step 1: Determine calculation basis
+  const beitrag = transaction.beitrag || 0;
+  const bewertungssumme = transaction.bewertungssumme || beitrag * 12;
+
+  // Find relevant calculation rules
+  const basisRules = topMatches.filter(m =>
+    m.rule.category === 'Berechnung'
+  );
+
+  if (basisRules.length > 0) {
+    const basisRule = basisRules[0].rule;
+    calculationSteps.push({
+      step: stepNum++,
+      label: basisRule.name,
+      description: basisRule.description,
+      formula: basisRule.formula || '',
+      inputValues: { beitrag },
+      calculation: `Basis: ${beitrag.toLocaleString('de-DE')} €`,
+      result: beitrag,
+      resultLabel: 'Berechnungsgrundlage',
+      ruleReference: createRuleReference(basisRule)
+    });
+  }
+
+  // Step 2: Apply main provision rule
+  const mainRules = topMatches.filter(m =>
+    m.rule.category === transaction.provisionsart ||
+    ['Abschluss', 'Bestand', 'Storno', 'Dynamik'].includes(m.rule.category)
+  );
+
+  if (mainRules.length > 0) {
+    const mainRule = mainRules[0].rule;
+    calculationSteps.push({
+      step: stepNum++,
+      label: mainRule.name,
+      description: mainRule.description,
+      formula: mainRule.formula || '',
+      inputValues: { basis: bewertungssumme },
+      calculation: mainRule.formula
+        ? `${mainRule.formula} = ${transaction.provisionsbetrag.toLocaleString('de-DE')} €`
+        : `Provision: ${transaction.provisionsbetrag.toLocaleString('de-DE')} €`,
+      result: transaction.provisionsbetrag,
+      resultLabel: 'Provisionsbetrag',
+      ruleReference: createRuleReference(mainRule)
+    });
+  }
+
+  // Generate summary
+  const summary = `${transaction.provisionsart}provision für ${transaction.produktart} nach ${primaryRule.paragraph}`;
+
+  // Generate explanation text
+  const explanation = `Diese ${transaction.provisionsart}provision wurde gemäß ${primaryRule.document} (${primaryRule.paragraph}) berechnet. ` +
+    `${primaryRule.description}`;
+
+  // Generate calculation string
+  const calculation = primaryRule.formula
+    ? `${primaryRule.formula} = ${transaction.provisionsbetrag.toLocaleString('de-DE')} €`
+    : `${transaction.provisionsbetrag.toLocaleString('de-DE')} €`;
+
+  // Determine confidence
+  const confidence: 'high' | 'medium' | 'low' =
+    topMatches[0].matchScore >= 70 ? 'high' :
+    topMatches[0].matchScore >= 40 ? 'medium' : 'low';
+
+  return {
+    transactionId: transaction.id,
+    summary,
+    appliedRules: topMatches.map(m => ({
+      id: m.rule.id,
+      name: m.rule.name,
+      category: m.rule.category
+    })),
+    explanation,
+    calculation,
+    calculationSteps: calculationSteps.length > 0 ? calculationSteps : undefined,
+    finalAmount: transaction.provisionsbetrag,
+    confidence,
+    confidenceReasons: [
+      `Regelübereinstimmung: ${topMatches[0].matchScore}% (${topMatches[0].matchReason})`,
+      topMatches.length > 1 ? `${topMatches.length} potenzielle Regeln gefunden` : 'Eindeutige Regelzuordnung',
+      'Automatische Analyse ohne KI-Validierung'
+    ],
+    notes: 'Diese Erklärung wurde automatisch basierend auf dem Regelwerk generiert. ' +
+      'Für eine detailliertere KI-Analyse einen API-Key eingeben.'
+  };
+}
+
+/**
+ * Erklärt alle Transaktionen - mit API wenn verfügbar, sonst Fallback
+ */
+export async function explainAllTransactionsWithFallback(
+  transactions: Transaction[],
+  rules: ProvisionRule[],
+  onProgress?: (current: number, total: number, message: string) => void
+): Promise<TransactionExplanation[]> {
+  const useApi = isClientInitialized() && rules.length > 0;
+  const explanations: TransactionExplanation[] = [];
+  const total = transactions.length;
+
+  for (let i = 0; i < transactions.length; i++) {
+    const transaction = transactions[i];
+    onProgress?.(i + 1, total, useApi
+      ? `KI-Analyse Transaktion ${i + 1} von ${total}...`
+      : `Regelwerk-Analyse Transaktion ${i + 1} von ${total}...`
+    );
+
+    let explanation: TransactionExplanation;
+
+    if (useApi) {
+      try {
+        explanation = await explainTransaction(transaction, rules);
+      } catch (error) {
+        // Fallback to rule-based explanation if API fails
+        console.warn('API-Aufruf fehlgeschlagen, nutze Fallback:', error);
+        explanation = generateFallbackExplanation(transaction);
+      }
+    } else {
+      // Use fallback without API
+      explanation = generateFallbackExplanation(transaction);
+    }
+
+    explanations.push(explanation);
+
+    // Small delay for progress visibility
+    if (i < transactions.length - 1) {
+      await new Promise(resolve => setTimeout(resolve, useApi ? 300 : 50));
     }
   }
 
