@@ -17,7 +17,7 @@ import {
   getMappingForTransaction,
   type ProvisionRule
 } from '../data/provisionRules';
-import { DEMO_EXPLANATIONS } from '../data/demoData';
+import { DEMO_EXPLANATIONS, DEMO_TRANSACTIONS } from '../data/demoData';
 
 export interface RuleMatchResult {
   rule: ProvisionRule;
@@ -193,8 +193,6 @@ export function getDemoExplanation(transactionId: string): TransactionExplanatio
  */
 export function getDemoExplanationByContract(vertragsnummer: string): TransactionExplanation | null {
   // Find the demo transaction with this contract number
-  const { DEMO_TRANSACTIONS } = require('../data/demoData');
-
   const demoTx = DEMO_TRANSACTIONS.find((t: Transaction) => t.vertragsnummer === vertragsnummer);
   if (demoTx && DEMO_EXPLANATIONS[demoTx.id]) {
     return DEMO_EXPLANATIONS[demoTx.id];
