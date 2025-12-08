@@ -119,7 +119,12 @@ export const AnalyzeView: React.FC = () => {
         message: 'Transaktionen werden extrahiert...'
       });
 
-      const extractedTransactions = await parseTransactionsFromText(document.fullText);
+      const extractedTransactions = await parseTransactionsFromText(
+        document.fullText,
+        (current, total, message) => {
+          setAnalysisProgress({ current, total, message });
+        }
+      );
       setTransactions(extractedTransactions);
 
       if (extractedTransactions.length === 0) {
