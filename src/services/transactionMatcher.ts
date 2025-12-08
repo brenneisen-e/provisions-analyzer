@@ -26,23 +26,69 @@ interface ExplanationResponse {
 
 /**
  * Parst Transaktionen aus extrahiertem PDF-Text
+ * Verwendet API wenn verfügbar, sonst Regex-Fallback
  */
 export async function parseTransactionsFromText(
-  text: string
+  text: string,
+  onProgress?: (current: number, total: number, message: string) => void
 ): Promise<Transaction[]> {
+  // Check if API is available
+  if (!isClientInitialized()) {
+    onProgress?.(10, 100, 'Kein API-Key - nutze lokale Extraktion...');
+    await new Promise(resolve => setTimeout(resolve, 200));
+
+    onProgress?.(30, 100, 'Analysiere Dokumentstruktur...');
+    await new Promise(resolve => setTimeout(resolve, 200));
+
+    const transactions = parseTransactionsWithRegex(text);
+
+    onProgress?.(70, 100, `${transactions.length} Transaktionen gefunden...`);
+    await new Promise(resolve => setTimeout(resolve, 200));
+
+    const result = transactions
+      .filter(t => t.vertragsnummer && t.provisionsbetrag !== undefined)
+      .map(t => ({
+        id: generateSimpleId(),
+        datum: t.datum || new Date().toISOString().split('T')[0],
+        vertragsnummer: t.vertragsnummer!,
+        produktart: t.produktart || 'Unbekannt',
+        sparte: t.sparte,
+        beitrag: t.beitrag,
+        bewertungssumme: t.bewertungssumme,
+        provisionsbetrag: t.provisionsbetrag!,
+        provisionsart: validateProvisionsart(t.provisionsart),
+        vermittlernummer: t.vermittlernummer,
+        kundenname: t.kundenname,
+        rawText: undefined
+      }));
+
+    onProgress?.(100, 100, `${result.length} Transaktionen extrahiert`);
+    return result;
+  }
+
+  // Use API for better extraction
+  onProgress?.(10, 100, 'KI-Analyse startet...');
+  await new Promise(resolve => setTimeout(resolve, 100));
+
+  onProgress?.(20, 100, 'Sende Dokument an Claude...');
+
   const response = await sendMessage(
     PROMPTS.TRANSACTION_PARSING,
     `Provisionsabrechnung:\n\n${text}`,
     { temperature: 0.1, maxTokens: 8000 }
   );
 
+  onProgress?.(80, 100, 'Verarbeite KI-Antwort...');
+  await new Promise(resolve => setTimeout(resolve, 100));
+
   const parsed = extractJSON<ParsedTransactionsResponse>(response);
 
   if (!parsed || !parsed.transactions) {
+    onProgress?.(100, 100, 'Keine Transaktionen gefunden');
     return [];
   }
 
-  return parsed.transactions
+  const result = parsed.transactions
     .filter(t => t.vertragsnummer && t.provisionsbetrag !== undefined)
     .map(t => ({
       id: generateSimpleId(),
@@ -58,40 +104,137 @@ export async function parseTransactionsFromText(
       kundenname: t.kundenname,
       rawText: undefined
     }));
+
+  onProgress?.(100, 100, `${result.length} Transaktionen extrahiert`);
+  return result;
 }
 
 /**
  * Parst Transaktionen mit Regex-Fallback
+ * Erkennt das Landscape-Format der generierten Provisionsabrechnungen
  */
 export function parseTransactionsWithRegex(text: string): Partial<Transaction>[] {
   const transactions: Partial<Transaction>[] = [];
   const lines = text.split('\n');
 
-  // Common patterns for provision statements
-  const patterns = [
-    // Pattern: Date, Contract Nr, Product, Type, Amount, Provision
-    /(\d{1,2}\.\d{1,2}\.\d{2,4})\s+([A-Z0-9-]+)\s+(.+?)\s+(Abschluss|Bestand|Storno|Dynamik|AP|BP)\s+([\d.,]+)\s*(?:EUR)?\s+([-]?[\d.,]+)/gi,
-    // Alternative pattern
-    /([A-Z]{2,3}-\d{4}-\d+)\s+(.+?)\s+([\d.,]+)\s*EUR\s+([-]?[\d.,]+)\s*EUR/gi
-  ];
+  // Pattern für Landscape-PDF Format:
+  // Datum | VS-Nummer | Kunde | Gesellschaft | Produkt | Sparte | Art | Beitrag | Basis | Satz | Provision | SR
+  const landscapePattern = /(\d{1,2}\.\d{1,2}\.\d{2,4})\s+([A-Z]{2,4}-\d{4}-\d+)\s+(\S+)\s+(.+?)\s+(Leben|PKV|Sach|Kfz|LV|KV|SHUK)\s+(AP|BP|ST|DYN|NP|SO|RA|BE|CTG|FP)\s+([\d.,]+)\s+([\d.,]+)\s+(\S+)\s+([-]?[\d.,]+)/gi;
+
+  // Pattern für einfacheres Format:
+  // Datum | VS-Nummer | Produkt | Art | Provision
+  const simplePattern = /(\d{1,2}\.\d{1,2}\.\d{2,4})\s+([A-Z]{2,4}-\d{4}-\d+)\s+(.+?)\s+(AP|BP|ST|DYN|Abschluss|Bestand|Storno|Dynamik)\s+([-]?[\d.,]+)/gi;
+
+  // Pattern für Zeilen mit Vertragsnummer und Provision
+  const contractPattern = /([A-Z]{2,4}-\d{4}-\d+)[^\d]*([\d.,]+)\s*€?\s+([-]?[\d.,]+)\s*€?/gi;
+
+  const seenContracts = new Set<string>();
 
   for (const line of lines) {
-    for (const pattern of patterns) {
-      pattern.lastIndex = 0;
-      const match = pattern.exec(line);
-      if (match) {
+    // Skip header lines
+    if (line.includes('Datum') && line.includes('VS-Nummer')) continue;
+    if (line.includes('Provision') && line.includes('Sparte')) continue;
+
+    // Try landscape pattern first
+    landscapePattern.lastIndex = 0;
+    let match = landscapePattern.exec(line);
+    if (match) {
+      const vsnr = match[2];
+      if (!seenContracts.has(vsnr)) {
+        seenContracts.add(vsnr);
+        const sparte = detectSparte(match[5]);
         transactions.push({
           datum: parseGermanDate(match[1]),
-          vertragsnummer: match[2],
-          produktart: match[3]?.trim(),
-          provisionsbetrag: parseGermanNumber(match[6] || match[4]),
-          provisionsart: detectProvisionsart(match[4] || line)
+          vertragsnummer: vsnr,
+          kundenname: match[3]?.trim(),
+          produktart: match[4]?.trim() || 'Unbekannt',
+          sparte,
+          beitrag: parseGermanNumber(match[7]),
+          bewertungssumme: parseGermanNumber(match[8]),
+          provisionsbetrag: parseGermanNumber(match[10]),
+          provisionsart: detectProvisionsartFromCode(match[6])
+        });
+      }
+      continue;
+    }
+
+    // Try simple pattern
+    simplePattern.lastIndex = 0;
+    match = simplePattern.exec(line);
+    if (match) {
+      const vsnr = match[2];
+      if (!seenContracts.has(vsnr)) {
+        seenContracts.add(vsnr);
+        transactions.push({
+          datum: parseGermanDate(match[1]),
+          vertragsnummer: vsnr,
+          produktart: match[3]?.trim() || 'Unbekannt',
+          sparte: detectSparteFromProduct(match[3] || ''),
+          provisionsbetrag: parseGermanNumber(match[5]),
+          provisionsart: detectProvisionsart(match[4])
+        });
+      }
+      continue;
+    }
+
+    // Try contract pattern
+    contractPattern.lastIndex = 0;
+    match = contractPattern.exec(line);
+    if (match) {
+      const vsnr = match[1];
+      if (!seenContracts.has(vsnr)) {
+        seenContracts.add(vsnr);
+        transactions.push({
+          vertragsnummer: vsnr,
+          beitrag: parseGermanNumber(match[2]),
+          provisionsbetrag: parseGermanNumber(match[3]),
+          provisionsart: detectProvisionsart(line),
+          sparte: detectSparteFromContract(vsnr)
         });
       }
     }
   }
 
   return transactions;
+}
+
+function detectSparte(text: string): string {
+  const lower = text.toLowerCase();
+  if (lower.includes('leben') || lower === 'lv') return 'LV';
+  if (lower.includes('pkv') || lower === 'kv' || lower.includes('kranken')) return 'KV';
+  if (lower.includes('sach') || lower === 'shuk') return 'SHUK';
+  if (lower.includes('kfz')) return 'Kfz';
+  return 'LV';
+}
+
+function detectSparteFromProduct(product: string): string {
+  const lower = product.toLowerCase();
+  if (lower.includes('leben') || lower.includes('risiko') || lower.includes('rente')) return 'LV';
+  if (lower.includes('kranken') || lower.includes('pkv') || lower.includes('pfleg')) return 'KV';
+  if (lower.includes('haftpflicht') || lower.includes('wohn') || lower.includes('hausrat')) return 'SHUK';
+  if (lower.includes('kfz') || lower.includes('auto')) return 'Kfz';
+  return 'LV';
+}
+
+function detectSparteFromContract(vsnr: string): string {
+  const prefix = vsnr.split('-')[0]?.toUpperCase();
+  if (prefix === 'LV') return 'LV';
+  if (prefix === 'KV') return 'KV';
+  if (prefix === 'SHUK') return 'SHUK';
+  if (prefix === 'KFZ') return 'Kfz';
+  return 'LV';
+}
+
+function detectProvisionsartFromCode(code: string): Transaction['provisionsart'] {
+  const upper = code.toUpperCase();
+  if (upper === 'AP' || upper === 'CTG') return 'Abschluss';
+  if (upper === 'BP' || upper === 'FP') return 'Bestand';
+  if (upper === 'ST') return 'Storno';
+  if (upper === 'DYN') return 'Dynamik';
+  if (upper === 'NP') return 'Nachprovision';
+  if (upper === 'RA') return 'Storno'; // Rückabrechnung
+  if (upper === 'BE') return 'Dynamik'; // Beitragserhöhung
+  return 'Sonstig';
 }
 
 /**
