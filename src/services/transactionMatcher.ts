@@ -71,7 +71,7 @@ export async function parseTransactionsFromText(
   onProgress?.(10, 100, 'KI-Analyse startet...');
   await new Promise(resolve => setTimeout(resolve, 100));
 
-  onProgress?.(20, 100, 'Sende Dokument an Claude...');
+  onProgress?.(20, 100, 'Sende an KI Agent...');
 
   const response = await sendMessage(
     PROMPTS.TRANSACTION_PARSING,
