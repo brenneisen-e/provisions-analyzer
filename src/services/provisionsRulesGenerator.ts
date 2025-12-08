@@ -1,4 +1,13 @@
 import jsPDF from 'jspdf';
+import {
+  ALL_PROVISION_RULES,
+  KV_RULES,
+  SHUK_RULES,
+  LV_RULES,
+  KFZ_RULES,
+  ALLGEMEIN_RULES,
+  type ProvisionRule
+} from '../data/provisionRules';
 
 // Layout Konstanten
 const PAGE_WIDTH = 210;
@@ -740,6 +749,28 @@ function renderPartH(ctx: PDFContext): void {
 }
 
 // ==================== ANLAGEN ====================
+
+/**
+ * Renders provision rules from the provisionRules.ts database
+ */
+function renderProvisionRulesFromDatabase(ctx: PDFContext, rules: ProvisionRule[], title: string): void {
+  renderText(ctx, `${title} (${rules.length} Regeln)`);
+  ctx.y += 3;
+
+  const ruleRows = rules.map(rule => [
+    rule.shortName,
+    rule.paragraph,
+    rule.category,
+    rule.formula || '-',
+    rule.pageNumber.toString()
+  ]);
+
+  renderTable(ctx,
+    ['Regel', 'Paragraph', 'Kategorie', 'Formel', 'Seite'],
+    ruleRows
+  );
+}
+
 function renderAnlagen(ctx: PDFContext): void {
   renderSectionHeader(ctx, 'Anlage 1', 'Provisionstabelle Lebensversicherung');
 
@@ -838,6 +869,26 @@ function renderAnlagen(ctx: PDFContext): void {
   ctx.y += 10;
   renderText(ctx, `3. Neukundenbonus`);
   renderText(ctx, `Bei Neukundenquote über 30%: +10% auf das gesamte Neukundengeschäft`);
+
+  // Anlage 5: Kompletter Regelkatalog aus provisionRules.ts
+  addNewPage(ctx);
+  renderSectionHeader(ctx, 'Anlage 5', `Regelkatalog (${ALL_PROVISION_RULES.length} Regeln)`);
+  renderText(ctx, `Vollständiger Katalog aller Provisionsregeln nach Sparte`);
+  ctx.y += 5;
+
+  renderProvisionRulesFromDatabase(ctx, KV_RULES, 'Krankenversicherung (KV)');
+
+  addNewPage(ctx);
+  renderProvisionRulesFromDatabase(ctx, SHUK_RULES, 'Sach/Haftpflicht/Unfall/Kfz (SHUK)');
+
+  addNewPage(ctx);
+  renderProvisionRulesFromDatabase(ctx, LV_RULES, 'Lebensversicherung (LV)');
+
+  addNewPage(ctx);
+  renderProvisionRulesFromDatabase(ctx, KFZ_RULES, 'Kraftfahrtversicherung (Kfz)');
+
+  ctx.y += 10;
+  renderProvisionRulesFromDatabase(ctx, ALLGEMEIN_RULES, 'Allgemeine Regeln');
 }
 
 // ==================== HILFSFUNKTIONEN ====================

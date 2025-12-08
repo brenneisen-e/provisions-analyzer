@@ -1,6 +1,7 @@
 import jsPDF from 'jspdf';
 import type { Transaction, TransactionExplanation } from '../types';
 import { formatCurrency, formatDate } from '../utils/helpers';
+import { DEMO_TRANSACTIONS } from '../data/demoData';
 
 // Farben
 const COLOR_PRIMARY = [0, 82, 147] as const; // Dunkelblau
@@ -49,24 +50,94 @@ interface SampleTx {
   sr: number;
 }
 
+// Mapping for art codes based on provisionsart
+const PROVISIONSART_TO_ARTCODE: Record<string, { art: string; artCode: string }> = {
+  'Abschluss': { art: 'Neugeschäft', artCode: 'AP' },
+  'Bestand': { art: 'Bestand', artCode: 'BP' },
+  'Storno': { art: 'Storno', artCode: 'ST' },
+  'Dynamik': { art: 'Dynamik', artCode: 'DYN' },
+  'Nachprovision': { art: 'Nachprovision', artCode: 'NP' },
+  'Rückabrechnung': { art: 'Rückabrechnung', artCode: 'RA' },
+  'Beitragserhöhung': { art: 'Beitragserhöhung', artCode: 'BE' },
+  'Sonstig': { art: 'Sonstig', artCode: 'SO' }
+};
+
+// Mapping sparte to display name
+const SPARTE_DISPLAY: Record<string, string> = {
+  'KV': 'PKV',
+  'SHUK': 'Sach',
+  'LV': 'Leben',
+  'Kfz': 'Kfz'
+};
+
+// Mapping sparte to gesellschaft
+const SPARTE_GESELLSCHAFT: Record<string, string> = {
+  'KV': 'Alpha Versicherung',
+  'SHUK': 'Alpha Versicherung',
+  'LV': 'Alpha Versicherung',
+  'Kfz': 'Alpha Versicherung'
+};
+
+/**
+ * Converts DEMO_TRANSACTIONS to SampleTx format for PDF generation
+ */
 function getSampleTransactions(): SampleTx[] {
-  return [
-    { datum: '05.11.2024', vsnr: '451-464353-2', kunde: 'Müller, M.', gesellschaft: 'Allianz', produkt: 'PrivatRente Perspektive', sparte: 'Leben', art: 'Neugeschäft', artCode: 'AP', beitrag: 1800, basis: 63000, satz: '40‰', provision: 2520.00, sr: 252.00 },
-    { datum: '08.11.2024', vsnr: '782-145678-9', kunde: 'Schmidt, K.', gesellschaft: 'DKV', produkt: 'KomfortMed Premium', sparte: 'PKV', art: 'Neugeschäft', artCode: 'AP', beitrag: 5820, basis: 3527, satz: '8 MB', provision: 3527.27, sr: 352.73 },
-    { datum: '10.11.2024', vsnr: '552-378945-6', kunde: 'Weber, S.', gesellschaft: 'Nürnberger', produkt: 'BU-Schutz Plus', sparte: 'Leben', art: 'Neugeschäft', artCode: 'AP', beitrag: 1068, basis: 32040, satz: '45‰', provision: 1441.80, sr: 144.18 },
-    { datum: '12.11.2024', vsnr: '991-234567-8', kunde: 'Fischer, A.', gesellschaft: 'AXA', produkt: 'Hausrat Premium', sparte: 'Sach', art: 'Neugeschäft', artCode: 'CTG', beitrag: 222, basis: 187, satz: '20%', provision: 37.31, sr: 0 },
-    { datum: '14.11.2024', vsnr: '334-567891-2', kunde: 'Bauer, T.', gesellschaft: 'HUK-COBURG', produkt: 'Kfz-Vollkasko', sparte: 'Kfz', art: 'Neugeschäft', artCode: 'CTG', beitrag: 936, basis: 787, satz: '8%', provision: 62.92, sr: 0 },
-    { datum: '15.11.2024', vsnr: '451-234567-8', kunde: 'Hofmann, R.', gesellschaft: 'Alte Leipziger', produkt: 'Fondsgebundene RV', sparte: 'Leben', art: 'Bestand', artCode: 'BP', beitrag: 2400, basis: 2400, satz: '1,5%', provision: 36.00, sr: 0 },
-    { datum: '16.11.2024', vsnr: '887-654321-0', kunde: 'Klein, H.', gesellschaft: 'VGH', produkt: 'Wohngebäude Komfort', sparte: 'Sach', art: 'Bestand', artCode: 'CTG', beitrag: 1140, basis: 958, satz: '18%', provision: 172.44, sr: 0 },
-    { datum: '18.11.2024', vsnr: '451-098765-4', kunde: 'Braun, E.', gesellschaft: 'Stuttgarter', produkt: 'FlexVorsorge', sparte: 'Leben', art: 'Dynamik', artCode: 'DYN', beitrag: 150, basis: 4800, satz: '40‰', provision: 192.00, sr: 19.20 },
-    { datum: '20.11.2024', vsnr: '552-012345-6', kunde: 'Wagner, L.', gesellschaft: 'Swiss Life', produkt: 'BU Select', sparte: 'Leben', art: 'Storno', artCode: 'ST', beitrag: 900, basis: 25200, satz: '40‰', provision: -604.80, sr: 0 },
-    { datum: '22.11.2024', vsnr: '665-432109-8', kunde: 'Neumann, J.', gesellschaft: 'Haftpflichtkasse', produkt: 'PHV Exklusiv', sparte: 'Sach', art: 'Neugeschäft', artCode: 'CTG', beitrag: 99, basis: 83, satz: '22%', provision: 18.30, sr: 0 },
-    { datum: '24.11.2024', vsnr: '779-876543-2', kunde: 'Zimmermann, P.', gesellschaft: 'DEVK', produkt: 'Unfallschutz Premium', sparte: 'Unfall', art: 'Neugeschäft', artCode: 'CTG', beitrag: 294, basis: 247, satz: '25%', provision: 61.77, sr: 0 },
-    { datum: '25.11.2024', vsnr: '782-345678-9', kunde: 'Krause, D.', gesellschaft: 'Alpha', produkt: 'Zahnzusatz Premium', sparte: 'PKV', art: 'Bestand', artCode: 'BP', beitrag: 384, basis: 384, satz: '1,5%', provision: 5.76, sr: 0 },
-    { datum: '27.11.2024', vsnr: '445-678901-2', kunde: 'Schulz, M.', gesellschaft: 'ARAG', produkt: 'Rechtsschutz Komfort', sparte: 'Sach', art: 'Neugeschäft', artCode: 'CTG', beitrag: 336, basis: 282, satz: '20%', provision: 56.47, sr: 0 },
-    { datum: '28.11.2024', vsnr: '450-987654-3', kunde: 'Maier, G.', gesellschaft: 'Zurich', produkt: 'Förder-Rente Classic', sparte: 'Leben', art: 'Bestand', artCode: 'FP', beitrag: 2100, basis: 2100, satz: '2%', provision: 42.00, sr: 0 },
-    { datum: '29.11.2024', vsnr: '339-876543-2', kunde: 'Richter, B.', gesellschaft: 'Allianz', produkt: 'Kfz-Haftpflicht Plus', sparte: 'Kfz', art: 'Bestand', artCode: 'CTG', beitrag: 624, basis: 524, satz: '6%', provision: 31.46, sr: 0 },
-  ];
+  return DEMO_TRANSACTIONS.slice(0, 15).map(tx => {
+    const artInfo = PROVISIONSART_TO_ARTCODE[tx.provisionsart] || { art: 'Sonstig', artCode: 'SO' };
+    const sparte = tx.sparte || 'LV';
+    const beitrag = tx.beitrag || 0;
+    const bewertungssumme = tx.bewertungssumme || beitrag * 12;
+
+    // Calculate rate string based on transaction type
+    let satz = '';
+    let basis = beitrag;
+    if (sparte === 'LV' && tx.provisionsart === 'Abschluss') {
+      satz = '15‰';
+      basis = bewertungssumme;
+    } else if (sparte === 'KV' && tx.provisionsart === 'Abschluss') {
+      satz = '5,25 MB';
+      basis = beitrag * 0.9; // VAG-bereinigt
+    } else if (sparte === 'SHUK' && tx.provisionsart === 'Abschluss') {
+      satz = '40%';
+      basis = beitrag / 1.19; // ohne VSt
+    } else if (sparte === 'Kfz') {
+      satz = '7%';
+      basis = beitrag / 1.19;
+    } else if (tx.provisionsart === 'Bestand') {
+      satz = '1,5%';
+      basis = beitrag * 12;
+    } else if (tx.provisionsart === 'Dynamik') {
+      satz = '23‰';
+      basis = bewertungssumme;
+    } else if (tx.provisionsart === 'Storno') {
+      satz = 'PRT';
+      basis = Math.abs(tx.provisionsbetrag) * 2;
+    } else {
+      satz = 'var.';
+      basis = beitrag;
+    }
+
+    // Stornoreserve only for Abschluss
+    const sr = tx.provisionsart === 'Abschluss' && tx.provisionsbetrag > 0
+      ? Math.round(tx.provisionsbetrag * 0.1 * 100) / 100
+      : 0;
+
+    return {
+      datum: tx.datum,
+      vsnr: tx.vertragsnummer,
+      kunde: tx.kundenname || 'Unbekannt',
+      gesellschaft: SPARTE_GESELLSCHAFT[sparte] || 'Alpha Versicherung',
+      produkt: tx.produktart.substring(0, 25),
+      sparte: SPARTE_DISPLAY[sparte] || sparte,
+      art: artInfo.art,
+      artCode: artInfo.artCode,
+      beitrag: Math.round(beitrag),
+      basis: Math.round(basis),
+      satz,
+      provision: tx.provisionsbetrag,
+      sr
+    };
+  });
 }
 
 // Hilfsfunktionen

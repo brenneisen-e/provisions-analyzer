@@ -13,6 +13,7 @@ import { CalculationBreakdown } from '../components/CalculationBreakdown';
 import { RuleReferencePanel, useRuleReferencePanel } from '../components/RuleReferencePanel';
 import { SummaryDashboard } from '../components/SummaryDashboard';
 import { SPARTEN_ICONS, PROVISIONSART_COLORS, SPARTEN_COLORS, PROVISIONSART_BORDER_COLORS } from '../data/demoData';
+import { getDemoExplanationStats } from '../services/ruleMatcher';
 import type { Transaction, RuleReference, TransactionExplanation } from '../types';
 
 // Sparten Icon Component
@@ -238,9 +239,19 @@ export const AnalyzeView: React.FC = () => {
             Zurück
           </Button>
           {demoMode && (
-            <div className="flex items-center gap-2 px-3 py-1 bg-blue-100 rounded-full">
-              <Sparkles className="w-4 h-4 text-blue-600" />
-              <span className="text-sm font-medium text-blue-700">Demo-Modus</span>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2 px-3 py-1 bg-blue-100 rounded-full">
+                <Sparkles className="w-4 h-4 text-blue-600" />
+                <span className="text-sm font-medium text-blue-700">Demo-Modus</span>
+              </div>
+              {hasTransactions && (
+                <div className="text-xs text-gray-500">
+                  {(() => {
+                    const stats = getDemoExplanationStats();
+                    return `${stats.rulesUsed} Regeln • ${stats.totalExplanations} Erklärungen`;
+                  })()}
+                </div>
+              )}
             </div>
           )}
         </div>
